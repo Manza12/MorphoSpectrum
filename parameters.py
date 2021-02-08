@@ -20,6 +20,7 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Path parameters
 AUDIO_PATH = 'audio'
+MIDI_PATH = 'midi'
 
 # Plot parameters
 PLOT_UNITS = False
@@ -29,3 +30,7 @@ V_MAX = 0
 V_MIN_MOR = -30
 V_MAX_MOR = 0
 FULL_SCREEN = True
+
+# MIDI parameters
+TICKS_PER_BEAT = 960
+BPM = 60
