@@ -1,8 +1,9 @@
 import time
-
-import matplotlib.pyplot as plt
 import matplotlib.ticker as tick
 from parameters import *
+import matplotlib.pyplot as plt
+
+plt.switch_backend('WXAgg')
 
 
 def format_freq(x, pos, f):
@@ -42,7 +43,7 @@ def plot_cqt(a, t, f=FREQUENCIES):
 
     if FULL_SCREEN:
         manager = plt.get_current_fig_manager()
-        manager.resize(*manager.window.maxsize())
+        manager.frame.Maximize(True)
 
     plt.xlabel('Time (mm:ss)')
     plt.ylabel('Frequency (Hz)')

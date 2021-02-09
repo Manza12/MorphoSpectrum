@@ -1,6 +1,7 @@
 import numpy as np
 import librosa as rosa
 import torch
+from pathlib import Path
 
 # Analysis parameters
 FS = 44100  # in Hertz
@@ -19,8 +20,10 @@ EPS = np.finfo(np.float32).eps
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 # Path parameters
-AUDIO_PATH = 'audio'
-MIDI_PATH = 'midi'
+CWD = Path(__file__).parent.absolute()
+AUDIO_PATH = Path('audio')
+MIDI_PATH = Path('midi')
+SAMPLES_PATH = Path('samples')
 
 # Plot parameters
 PLOT_UNITS = False

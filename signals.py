@@ -1,23 +1,26 @@
 import scipy.io.wavfile as wav
-import os.path as path
+import warnings as warn
 from parameters import *
 
 
+warn.simplefilter("ignore", wav.WavFileWarning)
+
+
 def signal_from_file(file_name, audio_path=AUDIO_PATH):
-    file_path = path.join(audio_path, file_name + ".wav")
+    file_path = Path(audio_path) / Path(file_name + ".wav")
     fs, signal = wav.read(file_path)
 
     if signal.dtype == np.int16:
-        signal_float = signal / np.iinfo(signal.dtype).max
+        signal = signal / np.iinfo(signal.dtype).max
     else:
         Exception("Signal dtype not int16")
 
-    if not len(signal_float.shape) == 1:
+    if not len(signal.shape) == 1:
         raise Exception("Stereo not handled.")
 
     assert fs == FS
 
-    return signal_float
+    return signal
 
 
 def get_time_vector(signal):

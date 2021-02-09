@@ -12,6 +12,15 @@ class Piece:
         self.name = name
         self.notes = list()
 
+    def __str__(self):
+        result = ""
+        result += "Piece: " + self.name
+        result += "Notes:\n"
+        for i in range(len(self.notes)):
+            result += self.notes[i].__str__() + "\n"
+
+        return result
+
     def add_note(self, note):
         assert isinstance(note, Note)
         self.notes.append(note)
