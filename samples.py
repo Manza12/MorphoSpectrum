@@ -37,77 +37,79 @@ if __name__ == '__main__':
         spectrogram_list.append(_spectrogram_log)
         plot_cqt(_spectrogram_log, _time_vector)
 
+    midi_note = 69
+
     a = 0
     b = 1
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 0
     b = 2
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 0
     b = 3
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 0
     b = 4
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 0
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 1
     b = 2
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 1
     b = 3
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 1
     b = 4
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 1
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 2
     b = 3
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 2
     b = 4
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 2
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 3
     b = 4
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 3
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
 
     a = 4
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
