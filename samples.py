@@ -23,8 +23,10 @@ if __name__ == '__main__':
     # parse_samples(_samples_name)
 
     # A0: ["A0_2.523_33", "A0_10.846_62", "A0_22.086_98"], [33, 62, 98]
-    sample_names = ["A2_10.487_78", "A2_12.787_113"]
-    velocities = [78, 113]
+    # A2: ["A2_10.487_78", "A2_12.787_113"], [78, 113]
+    # A3: ["A3_4.215_14", "A3_5.229_44", "A3_7.108_61", "A3_10.823_112", "A3_10.823_121"], [14, 44, 61, 112, 121]
+    sample_names = ["A4_3.082_12", "A4_4.299_26", "A4_5.2_67", "A4_5.715_68", "A4_7.962_121", "A4_11.036_109"]
+    velocities = [12, 26, 67, 68, 121, 109]
 
     spectrogram_list = list()
     for i, name in enumerate(sample_names):
@@ -37,5 +39,75 @@ if __name__ == '__main__':
 
     a = 0
     b = 1
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 0
+    b = 2
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 0
+    b = 3
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 0
+    b = 4
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 0
+    b = 5
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 1
+    b = 2
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 1
+    b = 3
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 1
+    b = 4
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 1
+    b = 5
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 2
+    b = 3
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 2
+    b = 4
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 2
+    b = 5
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 3
+    b = 4
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 3
+    b = 5
+    diff = spectrogram_list[a] - spectrogram_list[b]
+    print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+
+    a = 4
+    b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
     print(str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
