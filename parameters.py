@@ -12,7 +12,10 @@ F_MAX = 20000.
 BINS_PER_OCTAVE = 48
 N_BINS = int(np.floor(BINS_PER_OCTAVE * np.log2(F_MAX / F_MIN)))
 NORM = 1  # Options: 1: L1 norm, 2: L2 norm
-WINDOW = ('tukey', 0.5)  # Options: "hann": Hann window, ("tukey", alpha): Tukey window with taper parameter alpha
+WINDOW = "hann"  # Options:
+# "hann": Hann window
+# ('tukey', 0.5): Tukey window with taper parameter 0.5
+# ("gaussian", 2048)
 FREQUENCIES = rosa.core.cqt_frequencies(N_BINS, F_MIN, BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
 
@@ -33,6 +36,8 @@ V_MAX = 0
 V_MIN_MOR = -30
 V_MAX_MOR = 0
 FULL_SCREEN = True
+TIME_FORMAT = 'milliseconds'  # '%M:%S'
+TIME_LABEL = 'Time (mm:ss,ms)'  # '(mm:ss)'
 
 # MIDI parameters
 TICKS_PER_BEAT = 960

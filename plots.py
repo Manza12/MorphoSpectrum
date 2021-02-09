@@ -1,4 +1,5 @@
-import time
+from datetime import time, timedelta
+import math
 import matplotlib.ticker as tick
 from parameters import *
 import matplotlib.pyplot as plt
@@ -7,6 +8,8 @@ plt.switch_backend('WXAgg')
 
 
 def format_freq(x, pos, f):
+    if pos:
+        pass
     n = int(round(x))
     if 0 <= n < f.size:
         if PLOT_UNITS:
@@ -18,13 +21,16 @@ def format_freq(x, pos, f):
 
 
 def format_time(x, pos, t):
+    if pos:
+        pass
     n = int(round(x))
     if 0 <= n < t.size:
         if PLOT_UNITS:
             return str(round(t[n], 3)) + " s"
         else:
-            return time.strftime('%M:%S', time.gmtime(round(t[n], 3)))
-            # return str(round(t[n], 3))
+            decomposition = math.modf(round(t[n], 6))
+            td = timedelta(seconds=round(decomposition[1]), microseconds=round(decomposition[0] * 1e6))
+            return time(second=td.seconds, microsecond=td.microseconds).isoformat(timespec='milliseconds')[3:]
     else:
         return ""
 
@@ -33,7 +39,7 @@ def plot_cqt(a, t, f=FREQUENCIES):
     fig = plt.figure(figsize=(2*320/DPI, 2*240/DPI), dpi=DPI)
     ax = fig.add_subplot(111)
 
-    plt.imshow(a, cmap='hot', aspect='auto', vmin=V_MIN, vmax=V_MAX, origin='lower')
+    ax.imshow(a, cmap='hot', aspect='auto', vmin=V_MIN, vmax=V_MAX, origin='lower')
 
     # Freq axis
     ax.yaxis.set_major_formatter(tick.FuncFormatter(lambda x, pos: format_freq(x, pos, f)))
@@ -41,12 +47,13 @@ def plot_cqt(a, t, f=FREQUENCIES):
     # Time axis
     ax.xaxis.set_major_formatter(tick.FuncFormatter(lambda x, pos: format_time(x, pos, t)))
 
+    # Labels
+    ax.set_xlabel(TIME_LABEL)
+    ax.set_ylabel('Frequency (Hz)')
+
     if FULL_SCREEN:
         manager = plt.get_current_fig_manager()
         manager.frame.Maximize(True)
-
-    plt.xlabel('Time (mm:ss)')
-    plt.ylabel('Frequency (Hz)')
 
     plt.show()
 
