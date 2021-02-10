@@ -7,9 +7,9 @@ from pathlib import Path
 FS = 44100  # in Hertz
 TIME_RESOLUTION = 0.01  # in seconds
 HOP_LENGTH = int(FS * TIME_RESOLUTION)  # in samples
-F_MIN = 55.
+F_MIN = 55. / 2
 F_MAX = 20000.
-BINS_PER_OCTAVE = 48
+BINS_PER_OCTAVE = 12 * 6
 N_BINS = int(np.floor(BINS_PER_OCTAVE * np.log2(F_MAX / F_MIN)))
 NORM = 1  # Options: 1: L1 norm, 2: L2 norm
 WINDOW = "hann"  # Options:
@@ -29,8 +29,10 @@ MIDI_PATH = Path('midi')
 SAMPLES_PATH = Path('samples')
 
 # Plot parameters
+BACKEND = 'TkAgg'  # 'WXAgg'
 PLOT_UNITS = False
 DPI = 120
+C_MAP = 'hot'
 V_MIN = -60
 V_MAX = 0
 V_MIN_MOR = -30
