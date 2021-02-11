@@ -16,7 +16,7 @@ sample_name = "A2_12.787_113"
 # Partials
 # ToDo: recover fundamental bin from sample information
 fundamental_bin = 2 * BINS_PER_OCTAVE
-N_PARTIALS = 12
+
 partials_pos = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
 
 start = 2  # in seconds

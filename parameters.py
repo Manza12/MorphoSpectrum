@@ -44,3 +44,9 @@ TIME_LABEL = 'Time (mm:ss,ms)'  # '(mm:ss)'
 # MIDI parameters
 TICKS_PER_BEAT = 960
 BPM = 60
+
+# Samples
+N_PARTIALS = 12
+F_REF = 440
+NUMBER_REF = 69
+NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
