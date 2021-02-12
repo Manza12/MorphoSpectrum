@@ -2,6 +2,10 @@ import numpy as np
 import librosa as rosa
 import torch
 from pathlib import Path
+from logs import *
+import time
+
+time.time()
 
 # Analysis parameters
 FS = 44100  # in Hertz
@@ -50,3 +54,6 @@ N_PARTIALS = 12
 F_REF = 440
 NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
+
+# Logs
+configure_logs()
