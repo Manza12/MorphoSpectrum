@@ -4,7 +4,7 @@ import matplotlib.ticker as tick
 from parameters import *
 import matplotlib.pyplot as plt
 
-plt.switch_backend('WXAgg')
+plt.switch_backend(BACKEND)
 
 
 def format_freq(x, pos, f):
@@ -35,11 +35,15 @@ def format_time(x, pos, t):
         return ""
 
 
-def plot_cqt(a, t, f=FREQUENCIES):
+def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP):
     fig = plt.figure(figsize=(2*320/DPI, 2*240/DPI), dpi=DPI)
+
+    if fig_title:
+        fig.suptitle(fig_title)
+
     ax = fig.add_subplot(111)
 
-    ax.imshow(a, cmap='hot', aspect='auto', vmin=V_MIN, vmax=V_MAX, origin='lower')
+    ax.imshow(a, cmap=c_map, aspect='auto', vmin=v_min, vmax=v_max, origin='lower')
 
     # Freq axis
     ax.yaxis.set_major_formatter(tick.FuncFormatter(lambda x, pos: format_freq(x, pos, f)))
@@ -53,7 +57,12 @@ def plot_cqt(a, t, f=FREQUENCIES):
 
     if FULL_SCREEN:
         manager = plt.get_current_fig_manager()
-        manager.frame.Maximize(True)
+        if BACKEND == 'WXAgg':
+            manager.frame.Maximize(True)
+        elif BACKEND == 'TkAgg':
+            manager.resize(*manager.window.maxsize())
+        else:
+            raise Exception("Backend not supported.")
 
     plt.show()
 

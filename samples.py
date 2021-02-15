@@ -113,3 +113,13 @@ if __name__ == '__main__':
     b = 5
     diff = spectrogram_list[a] - spectrogram_list[b]
     print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
+=======
+    sample_name = "A2_12.787_113"
+    start = 0  # in seconds
+    end = 25  # in seconds
+    _signal = signal_from_file(sample_name, SAMPLES_PATH)
+    _spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
+    _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
+    _time_vector = get_time_vector(_signal)
+    plot_cqt(_spectrogram_log, _time_vector, fig_title=sample_name)
+>>>>>>> b207ab5ac84ad91cb46cde336f7e46b14c2e6798
