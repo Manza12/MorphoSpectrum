@@ -4,8 +4,10 @@ import torch
 from pathlib import Path
 from logs import *
 import time
+import matplotlib.pyplot as plt
 
 time.time()
+plt.ion()
 
 # Analysis parameters
 FS = 44100  # in Hertz
@@ -22,6 +24,7 @@ WINDOW = "hann"  # Options:
 # ("gaussian", 2048)
 FREQUENCIES = rosa.core.cqt_frequencies(N_BINS, F_MIN, BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
+NOISE_THRESHOLD = -60  # in dB
 
 # GPU parameters
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -37,7 +40,7 @@ BACKEND = 'TkAgg'  # 'WXAgg'
 PLOT_UNITS = False
 DPI = 120
 C_MAP = 'hot'
-V_MIN = -60
+V_MIN = NOISE_THRESHOLD
 V_MAX = 0
 V_MIN_MOR = -30
 V_MAX_MOR = 0
@@ -54,6 +57,7 @@ N_PARTIALS = 12
 F_REF = 440
 NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
+PARTIALS_DISTRIBUTION_TYPE = "linear"
 
 # Logs
 configure_logs()

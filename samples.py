@@ -5,6 +5,7 @@ from signals import signal_from_file, wav, get_time_vector
 from tqdm import tqdm
 from time_frequency import cqt
 from music import Note
+import scipy.stats as stat
 
 
 class SamplesSet(list):
@@ -17,7 +18,7 @@ class SamplesSet(list):
 
     @classmethod
     def from_directory(cls, instrument, directory_path='samples', start_seconds=0., end_seconds=None,
-                       shift_distribution=0.1, verbose=True):
+                       partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, verbose=True):
         """ Recover a Samples Set from a directory.
 
         Parameters
@@ -31,9 +32,8 @@ class SamplesSet(list):
             end_seconds: None, float
                 Ending time in seconds up to where we take each sample. If None is passed as argument, the sample is
                 taken up to the end. Default is None.
-            shift_distribution: float
-                Delta time in seconds relative to the start of the sample from where the partials are considered to be
-                the homogeneous distribution of the sound.
+            partials_distribution_type: str
+                Type of partial distribution, i.e.: the decay behaviour of the partials. Default is set in parameters.
             verbose: bool
                 If True then log info is emitted. Default True.
 
@@ -54,8 +54,8 @@ class SamplesSet(list):
 
         sta = time.time()
         for file in tqdm(files):
-            sample = Sample.from_file(file[:-4], shift_distribution, start_seconds=start_seconds,
-                                      end_seconds=end_seconds)
+            sample = Sample.from_file(file[:-4], start_seconds=start_seconds,
+                                      end_seconds=end_seconds, partials_distribution_type=partials_distribution_type)
             samples_set.append(sample)
         end = time.time()
         if verbose:
@@ -64,8 +64,8 @@ class SamplesSet(list):
         return samples_set
 
     @classmethod
-    def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., shift_distribution=0.1,
-                       naming_by="midi_number", write=True, verbose=True):
+    def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", write=True,
+                       verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
         """ Recover a Samples Set from a midi file and its corresponding audio file.
 
         Parameters
@@ -77,9 +77,8 @@ class SamplesSet(list):
                 extension.
             resonance_seconds: float
                 Time left after the note off message. Default is 0.
-            shift_distribution: float
-                Delta time in seconds relative to the start of the sample from where the partials are considered to be
-                the homogeneous distribution of the sound.
+            partials_distribution_type: str
+                Type of partial distribution, i.e.: the decay behaviour of the partials. Default is set in parameters.
             naming_by:
                 The way naming the audio files if they are witten.
                     Options:
@@ -121,10 +120,12 @@ class SamplesSet(list):
             spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(note_signal)
             fundamental_bin, partials_bins = Sample.get_partials_bins(note.note_number)
             partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
-                                                                                  shift_distribution=shift_distribution)
+                                                                                  time_vector,
+                                                                                  partials_distribution_type)
+
             sample = Sample(note.velocity, note.note_number, note.start_seconds, note.end_seconds, note_signal,
                             spectrogram_log, time_vector, fundamental_bin, partials_bins, partials_amplitudes,
-                            partials_distribution, shift_distribution)
+                            partials_distribution)
 
             samples_set.append(sample)
             if write:
@@ -138,8 +139,7 @@ class SamplesSet(list):
 
 class Sample(Note):
     def __init__(self, velocity, note_number, start_seconds, end_seconds, signal, spectrogram_log, time_vector,
-                 fundamental_bin, partials_bins, partials_amplitudes, partials_distribution, shift_distribution,
-                 file_name=None):
+                 fundamental_bin, partials_bins, partials_amplitudes, partials_distribution, file_name=None):
         super().__init__(note_number, velocity, start_seconds, end_seconds)
         self.file_name = file_name
         self.fundamental_bin = fundamental_bin
@@ -149,10 +149,10 @@ class Sample(Note):
         self.time_vector = time_vector
         self.partials_amplitudes = partials_amplitudes
         self.partials_distribution = partials_distribution
-        self.shift_distribution = shift_distribution
 
     @classmethod
-    def from_file(cls, file_name, shift_distribution, start_seconds=0., end_seconds=None, audio_path=SAMPLES_PATH):
+    def from_file(cls, file_name, start_seconds=0., end_seconds=None, audio_path=SAMPLES_PATH,
+                  partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
         signal = signal_from_file(file_name, audio_path=audio_path)
         if end_seconds:
             signal_cut = signal[np.floor(start_seconds * FS).astype(int): np.ceil(end_seconds * FS).astype(int)]
@@ -169,10 +169,10 @@ class Sample(Note):
         spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(signal_cut)
         fundamental_bin, partials_bins = Sample.get_partials_bins(note_number)
         partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
-                                                                              shift_distribution)
+                                                                              time_vector, partials_distribution_type)
 
         return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram_log, time_vector, fundamental_bin,
-                   partials_bins, partials_amplitudes, partials_distribution, shift_distribution, file_name=file_name)
+                   partials_bins, partials_amplitudes, partials_distribution, file_name=file_name)
 
     @staticmethod
     def get_spectrogram(signal):
@@ -190,136 +190,67 @@ class Sample(Note):
         return fundamental_bin, partials_bins_allowed
 
     @staticmethod
-    def get_partials_info(spectrogram_log, partials_bins, shift_distribution):
+    def get_partials_info(spectrogram_log, partials_bins, time_vector, partials_distribution_type, plot_regress=False):
         partials_amplitudes = spectrogram_log[partials_bins, :]
-        shift_sample = np.round(shift_distribution / TIME_RESOLUTION).astype(int)
-        partials_distribution = partials_amplitudes[:, shift_sample] - partials_amplitudes[0, shift_sample]
+
+        if partials_distribution_type == 'linear':
+            linear_regressions = np.empty((partials_amplitudes.shape[0], 5))
+            for i in range(partials_amplitudes.shape[0]):
+                time_vector_over_noise = time_vector[partials_amplitudes[i] >= NOISE_THRESHOLD]
+                partials_amplitudes_over_noise = partials_amplitudes[i, partials_amplitudes[i] >= NOISE_THRESHOLD]
+
+                if partials_amplitudes_over_noise.size == 0:
+                    time_vector_over_noise = time_vector[0:2]
+                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
+                elif partials_amplitudes_over_noise.size == 1:
+                    time_vector_over_noise = time_vector[0:2]
+                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
+
+                linear_regression = stat.linregress(time_vector_over_noise, partials_amplitudes_over_noise)
+                linear_regressions[i, :] = linear_regression
+
+                if plot_regress:
+                    Sample.plot_regression(linear_regression, time_vector_over_noise, partials_amplitudes_over_noise)
+
+            partials_distribution = LinearPartialsDistribution(partials_amplitudes, linear_regressions)
+        else:
+            raise Exception("Partials distribution type not understood.")
+
         return partials_amplitudes, partials_distribution
+
+    @staticmethod
+    def plot_regression(linear_regression, time_vector_under_noise, partials_amplitudes_under_noise):
+        plt.figure()
+        plt.plot(time_vector_under_noise, partials_amplitudes_under_noise, 'o', label='original data')
+        plt.plot(time_vector_under_noise, linear_regression.intercept +
+                 linear_regression.slope * time_vector_under_noise, 'r', label='fitted line')
+        plt.legend()
+        plt.show()
 
     def create_strel(self):
         self.file_name = self.file_name
         raise Exception("Functionality not implemented.")
 
 
+class PartialsDistribution:
+    def __init__(self, partials_amplitudes, distribution_type=None):
+        self.partials_amplitudes = partials_amplitudes
+        self.number_partials = partials_amplitudes.shape[0]
+        self.distribution_type = distribution_type
+
+
+class LinearPartialsDistribution(PartialsDistribution):
+    def __init__(self, partials_amplitudes, linear_regressions):
+        super().__init__(partials_amplitudes, distribution_type="linear")
+        self.slopes = linear_regressions[:, 0]
+        self.intercept = linear_regressions[:, 1]
+        self.rvalue = linear_regressions[:, 2]
+        self.pvalue = linear_regressions[:, 3]
+        self.stderr = linear_regressions[:, 4]
+
+
 if __name__ == '__main__':
     _samples_name = 'samples'
     _instrument = "MyPiano"
-    # parse_samples(_samples_name)
-    # _samples_set = SamplesSet.from_midi_file(_instrument, _samples_name, resonance_seconds=0.3,
-    # shift_distribution=0.1, naming_by="midi_number", write=True)
 
-    _samples_set = SamplesSet.from_directory("MyPiano", "samples", shift_distribution=0.1)
-
-<<<<<<< HEAD
-    # A0: ["A0_2.523_33", "A0_10.846_62", "A0_22.086_98"], [33, 62, 98]
-    # A2: ["A2_10.487_78", "A2_12.787_113"], [78, 113]
-    # A3: ["A3_4.215_14", "A3_5.229_44", "A3_7.108_61", "A3_10.823_112", "A3_10.823_121"], [14, 44, 61, 112, 121]
-    sample_names = ["A4_3.082_12", "A4_4.299_26", "A4_5.2_67", "A4_5.715_68", "A4_7.962_121", "A4_11.036_109"]
-    velocities = [12, 26, 67, 68, 121, 109]
-
-    spectrogram_list = list()
-    for i, name in enumerate(sample_names):
-        _signal = signal_from_file(name, SAMPLES_PATH)
-        _time_vector = get_time_vector(_signal)
-        _spectrogram = cqt(_signal, numpy=True)[:, 0:200]
-        _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
-        spectrogram_list.append(_spectrogram_log)
-        plot_cqt(_spectrogram_log, _time_vector)
-
-    midi_note = 69
-
-    a = 0
-    b = 1
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 0
-    b = 2
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 0
-    b = 3
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 0
-    b = 4
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 0
-    b = 5
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 1
-    b = 2
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 1
-    b = 3
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 1
-    b = 4
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 1
-    b = 5
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 2
-    b = 3
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 2
-    b = 4
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 2
-    b = 5
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 3
-    b = 4
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 3
-    b = 5
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-
-    a = 4
-    b = 5
-    diff = spectrogram_list[a] - spectrogram_list[b]
-    print(str(midi_note) + "," + str(velocities[a]) + "," + str(velocities[b]) + "," + str(np.median(diff)))
-=======
-    sample_name = "A2_12.787_113"
-    start = 0  # in seconds
-    end = 25  # in seconds
-    _signal = signal_from_file(sample_name, SAMPLES_PATH)
-    _spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
-    _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
-    _time_vector = get_time_vector(_signal)
-    plot_cqt(_spectrogram_log, _time_vector, fig_title=sample_name)
->>>>>>> b207ab5ac84ad91cb46cde336f7e46b14c2e6798
-=======
-    # sample_name = "A2_12.787_113"
-    # start = 0  # in seconds
-    # end = 25  # in seconds
-    # _signal = signal_from_file(sample_name, SAMPLES_PATH)
-    # _spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int):
-    # np.ceil(end / TIME_RESOLUTION).astype(int)]
-    # _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
-    # _time_vector = get_time_vector(_signal)
-    # plot_cqt(_spectrogram_log, _time_vector, fig_title=sample_name)
->>>>>>> 429ab8e0b8f257f1295cc0f7d70d1195cc1acb50
+    _samples_set = SamplesSet.from_directory("MyPiano", "samples")
