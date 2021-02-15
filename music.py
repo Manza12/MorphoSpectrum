@@ -7,23 +7,23 @@ def ticks2seconds(ticks):
     return seconds
 
 
-class Piece:
+class Piece(list):
     def __init__(self, name):
+        super().__init__()
         self.name = name
-        self.notes = list()
 
     def __str__(self):
         result = ""
         result += "Piece: " + self.name
         result += "Notes:\n"
-        for i in range(len(self.notes)):
-            result += self.notes[i].__str__() + "\n"
+        for i in range(len(self)):
+            result += self[i].__str__() + "\n"
 
         return result
 
     def add_note(self, note):
         assert isinstance(note, Note)
-        self.notes.append(note)
+        self.append(note)
 
 
 class Note:

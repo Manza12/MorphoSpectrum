@@ -1,4 +1,8 @@
 .idea
 __pycache__
+<<<<<<< HEAD
 audio
 midi
+=======
+audio
+>>>>>>> 429ab8e0b8f257f1295cc0f7d70d1195cc1acb50
