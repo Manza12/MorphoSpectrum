@@ -1,10 +1,8 @@
-from datetime import time, timedelta
+from datetime import timedelta
+from datetime import time as tm
 import math
 import matplotlib.ticker as tick
 from parameters import *
-import matplotlib.pyplot as plt
-
-plt.switch_backend(BACKEND)
 
 
 def format_freq(x, pos, f):
@@ -30,12 +28,12 @@ def format_time(x, pos, t):
         else:
             decomposition = math.modf(round(t[n], 6))
             td = timedelta(seconds=round(decomposition[1]), microseconds=round(decomposition[0] * 1e6))
-            return time(second=td.seconds, microsecond=td.microseconds).isoformat(timespec='milliseconds')[3:]
+            return tm(second=td.seconds, microsecond=td.microseconds).isoformat(timespec='milliseconds')[3:]
     else:
         return ""
 
 
-def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP):
+def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP, show=True):
     fig = plt.figure(figsize=(2*320/DPI, 2*240/DPI), dpi=DPI)
 
     if fig_title:
@@ -64,7 +62,10 @@ def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_ma
         else:
             raise Exception("Backend not supported.")
 
-    plt.show()
+    if show:
+        plt.show()
+
+    return fig
 
 
 def plot_morphology(a_dilation, t, f=FREQUENCIES):

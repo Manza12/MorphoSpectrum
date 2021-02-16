@@ -43,13 +43,13 @@ class Note:
 
         return cls(note_number, velocity, start_seconds, end_seconds)
 
-    def __str__(self, name=True, time=True, velocity=False):
+    def __str__(self, name_str=True, time_str=True, velocity_str=False):
         result = ""
 
-        if name:
+        if name_str:
             result += self.pitch.unicodeNameWithOctave
-        if time:
+        if time_str:
             result += ", start: " + str(round(self.start_seconds, 3)) + ", duration: " + str(round(self.duration, 3))
-        if velocity:
+        if velocity_str:
             result += ", velocity: " + str(self.velocity)
         return result

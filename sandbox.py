@@ -10,18 +10,16 @@ _strel_1 = np.array([[-6], [0], [-6]])
 _origin_1 = [0, 0]
 
 # Samples to use
-# ToDo: Create an object sample
 sample_name = "A2_12.787_113"
 
 # Partials
-# ToDo: recover fundamental bin from sample information
 fundamental_bin = 2 * BINS_PER_OCTAVE
 
 partials_pos = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
 
 start = 2  # in seconds
 end = 6  # in seconds
-_signal = signal_from_file(sample_name, SAMPLES_PATH)
+_signal = signal_from_file(sample_name, SAMPLES_AUDIO_PATH)
 _spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
 _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
 _time_vector = get_time_vector(_signal)[np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]

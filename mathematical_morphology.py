@@ -20,7 +20,7 @@ if __name__ == '__main__':
     sample_name = "A2_12.787_113"
     start = 0  # in seconds
     end = 25  # in seconds
-    _signal = signal_from_file(sample_name, SAMPLES_PATH)
+    _signal = signal_from_file(sample_name, SAMPLES_AUDIO_PATH)
     _spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
     _spectrogram_log = 20 * np.log10(_spectrogram + EPS)
     _time_vector = get_time_vector(_signal)

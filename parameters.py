@@ -3,8 +3,8 @@ import librosa as rosa
 import torch
 from pathlib import Path
 from logs import *
-import time
 import matplotlib.pyplot as plt
+import time
 
 time.time()
 plt.ion()
@@ -13,7 +13,7 @@ plt.ion()
 FS = 44100  # in Hertz
 TIME_RESOLUTION = 0.01  # in seconds
 HOP_LENGTH = int(FS * TIME_RESOLUTION)  # in samples
-F_MIN = 55. / 2
+F_MIN = 55. / 2**(5/12)  # Mi0: 41.20 Hz
 F_MAX = 20000.
 BINS_PER_OCTAVE = 12 * 6
 N_BINS = int(np.floor(BINS_PER_OCTAVE * np.log2(F_MAX / F_MIN)))
@@ -34,6 +34,10 @@ CWD = Path(__file__).parent.absolute()
 AUDIO_PATH = Path('audio')
 MIDI_PATH = Path('midi')
 SAMPLES_PATH = Path('samples')
+SAMPLES_AUDIO_PATH = SAMPLES_PATH / Path('audio')
+SAMPLES_ARRAYS_PATH = SAMPLES_PATH / Path('arrays')
+SAMPLES_IMAGES_PATH = SAMPLES_PATH / Path('images')
+SAMPLES_INFO_PATH = SAMPLES_PATH / Path('info')
 
 # Plot parameters
 BACKEND = 'TkAgg'  # 'WXAgg'
@@ -47,6 +51,8 @@ V_MAX_MOR = 0
 FULL_SCREEN = True
 TIME_FORMAT = 'milliseconds'  # '%M:%S'
 TIME_LABEL = 'Time (mm:ss,ms)'  # '(mm:ss)'
+
+plt.switch_backend(BACKEND)
 
 # MIDI parameters
 TICKS_PER_BEAT = 960
