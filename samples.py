@@ -1,6 +1,7 @@
 import os
 from midi import midi2piece
 from parameters import *
+from plots import plot_cqt
 from signals import signal_from_file, wav, get_time_vector
 from tqdm import tqdm
 from time_frequency import cqt
@@ -47,9 +48,6 @@ class SamplesSet(list):
         if verbose:
             log.info("Recovering samples from directory " + str(directory_path))
 
-        if directory_path != "samples":
-            raise Exception("Directory should be called samples")
-
         samples_set = cls(instrument, samples_name=directory_path)
         # ToDo: load all as a principal parameter
         files = os.listdir(SAMPLES_AUDIO_PATH)
@@ -64,6 +62,11 @@ class SamplesSet(list):
             log.info("Time to recover samples: " + str(round(end - sta, 3)) + " seconds.")
 
         return samples_set
+
+    def save(self, save_audio=False, save_array=True, save_image=True, save_info=True, naming_by="midi_number"):
+        for sample in self:
+            sample.save(save_audio=save_audio, save_array=save_array, save_image=save_image, save_info=save_info,
+                        naming_by=naming_by)
 
     @classmethod
     def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", write=True,
@@ -131,7 +134,7 @@ class SamplesSet(list):
 
             samples_set.append(sample)
             if write:
-                wav.write(Path(SAMPLES_PATH) / Path(output_name + '.wav'), FS, note_signal)
+                wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, note_signal)
         end = time.time()
         if verbose:
             log.info("Time to recover samples: " + str(round(end - sta, 3)) + " seconds.")
@@ -151,6 +154,13 @@ class Sample(Note):
         self.time_vector = time_vector
         self.partials_amplitudes = partials_amplitudes
         self.partials_distribution = partials_distribution
+
+    def __str__(self, *kwargs):
+        result = ""
+        result += self.pitch.unicodeNameWithOctave
+        result += " (" + self.note_number + ")"
+        result += ", duration: " + str(round(self.duration, 3)) + " s"
+        result += ", velocity: " + str(self.velocity)
 
     @classmethod
     def from_file(cls, file_name, load_all=True, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
@@ -241,6 +251,40 @@ class Sample(Note):
     def create_strel(self):
         self.file_name = self.file_name
         raise Exception("Functionality not implemented.")
+
+    def save(self, save_audio=False, save_array=True, save_image=True, save_info=True, naming_by="midi_number"):
+        # The output_name for the saving data
+        if naming_by == "midi_number":
+            output_name = str(self.note_number) + "_" + str(round(self.duration, 3)) \
+                          + "_" + str(self.velocity)
+        elif naming_by == "nameWithOctave":
+            output_name = self.pitch.nameWithOctave + "_" + str(round(self.duration, 3)) \
+                          + "_" + str(self.velocity)
+        else:
+            raise Exception("Parameter naming_by not understood.")
+
+        # Save the audio
+        if save_audio:
+            wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, self.signal)
+
+        # Save array
+        if save_array:
+            np.save(Path(SAMPLES_ARRAYS_PATH) / Path(output_name + '_spectrogram' + '.npy'), self.spectrogram_log,
+                    allow_pickle=True)
+
+        # Save image
+        if save_image:
+            plot_cqt(self.spectrogram_log, self.time_vector, fig_title="Sample " + str(self), show=False)
+            plt.savefig(Path(SAMPLES_IMAGES_PATH) / Path(output_name + '.png'), dpi=DPI, format='png')
+            plt.close()
+        # Save info
+        if save_info:
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_distribution' + '.npy'), self.partials_distribution,
+                    allow_pickle=True)
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_bins' + '.npy'), self.partials_bins,
+                    allow_pickle=True)
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_amplitudes' + '.npy'), self.partials_amplitudes,
+                    allow_pickle=True)
 
 
 class PartialsDistribution:
