@@ -70,7 +70,7 @@ class SamplesSet(list):
 
     @classmethod
     def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", write=True,
-                       verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
+                       save=True, verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
         """ Recover a Samples Set from a midi file and its corresponding audio file.
 
         Parameters
@@ -135,6 +135,8 @@ class SamplesSet(list):
             samples_set.append(sample)
             if write:
                 wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, note_signal)
+            if save:
+                sample.save()
         end = time.time()
         if verbose:
             log.info("Time to recover samples: " + str(round(end - sta, 3)) + " seconds.")
@@ -158,9 +160,10 @@ class Sample(Note):
     def __str__(self, *kwargs):
         result = ""
         result += self.pitch.unicodeNameWithOctave
-        result += " (" + self.note_number + ")"
+        result += " (" + str(self.note_number) + ")"
         result += ", duration: " + str(round(self.duration, 3)) + " s"
         result += ", velocity: " + str(self.velocity)
+        return result
 
     @classmethod
     def from_file(cls, file_name, load_all=True, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
@@ -308,5 +311,5 @@ if __name__ == '__main__':
     _samples_name = 'samples'
     _instrument = "MyPiano"
 
-    # _samples_set = SamplesSet.from_directory("MyPiano", "samples", start_seconds=0., end_seconds=None, load_all=True)
-    _samples_set = SamplesSet.from_midi_file("MyPiano", "samples")
+    _samples_set = SamplesSet.from_directory("MyPiano", "samples", start_seconds=0., end_seconds=None, load_all=True)
+    # _samples_set = SamplesSet.from_midi_file("MyPiano", "samples")
