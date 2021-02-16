@@ -17,7 +17,7 @@ class SamplesSet(list):
         self.signal = signal
 
     @classmethod
-    def from_directory(cls, instrument, directory_path='samples', start_seconds=0., end_seconds=None,
+    def from_directory(cls, instrument, directory_path='samples', start_seconds=0., end_seconds=None, load_all=True,
                        partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, verbose=True):
         """ Recover a Samples Set from a directory.
 
@@ -32,6 +32,8 @@ class SamplesSet(list):
             end_seconds: None, float
                 Ending time in seconds up to where we take each sample. If None is passed as argument, the sample is
                 taken up to the end. Default is None.
+            load_all: bool
+                If load_all is True the information of the sample will be loaded instead of computed.
             partials_distribution_type: str
                 Type of partial distribution, i.e.: the decay behaviour of the partials. Default is set in parameters.
             verbose: bool
@@ -49,12 +51,12 @@ class SamplesSet(list):
             raise Exception("Directory should be called samples")
 
         samples_set = cls(instrument, samples_name=directory_path)
-
-        files = os.listdir(directory_path)
+        # ToDo: load all as a principal parameter
+        files = os.listdir(SAMPLES_AUDIO_PATH)
 
         sta = time.time()
         for file in tqdm(files):
-            sample = Sample.from_file(file[:-4], start_seconds=start_seconds,
+            sample = Sample.from_file(file[:-4], start_seconds=start_seconds, load_all=load_all,
                                       end_seconds=end_seconds, partials_distribution_type=partials_distribution_type)
             samples_set.append(sample)
         end = time.time()
@@ -104,7 +106,7 @@ class SamplesSet(list):
         samples_set = cls(instrument, samples_name=samples_name, piece=piece, signal=signal)
 
         sta = time.time()
-        for note in tqdm(piece.notes):
+        for note in tqdm(piece):
             start_samples = np.floor(note.start_seconds * FS).astype(int)
             end_samples = np.ceil((note.end_seconds + resonance_seconds) * FS).astype(int)
             note_signal = signal[start_samples:end_samples]
@@ -151,7 +153,7 @@ class Sample(Note):
         self.partials_distribution = partials_distribution
 
     @classmethod
-    def from_file(cls, file_name, start_seconds=0., end_seconds=None, audio_path=SAMPLES_PATH,
+    def from_file(cls, file_name, load_all=True, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
                   partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
         signal = signal_from_file(file_name, audio_path=audio_path)
         if end_seconds:
@@ -166,10 +168,19 @@ class Sample(Note):
         end_seconds = min(end_seconds, duration)
         velocity = int(parameters[2])
 
-        spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(signal_cut)
-        fundamental_bin, partials_bins = Sample.get_partials_bins(note_number)
-        partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
-                                                                              time_vector, partials_distribution_type)
+        if load_all:
+            time_vector = get_time_vector(signal_cut)
+            spectrogram_log = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
+            partials_bins = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_bins.npy"))
+            fundamental_bin = partials_bins[0]
+            partials_amplitudes = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_amplitudes.npy"))
+            partials_distribution = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_distribution.npy"))
+        else:
+            spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(signal_cut)
+            fundamental_bin, partials_bins = Sample.get_partials_bins(note_number)
+            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
+                                                                                  time_vector,
+                                                                                  partials_distribution_type)
 
         return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram_log, time_vector, fundamental_bin,
                    partials_bins, partials_amplitudes, partials_distribution, file_name=file_name)
@@ -253,4 +264,5 @@ if __name__ == '__main__':
     _samples_name = 'samples'
     _instrument = "MyPiano"
 
-    _samples_set = SamplesSet.from_directory("MyPiano", "samples")
+    # _samples_set = SamplesSet.from_directory("MyPiano", "samples", start_seconds=0., end_seconds=None, load_all=True)
+    _samples_set = SamplesSet.from_midi_file("MyPiano", "samples")
