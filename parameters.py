@@ -64,6 +64,7 @@ F_REF = 440
 NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
+LOAD_ALL = True
 
 # Logs
 configure_logs()

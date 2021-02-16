@@ -18,7 +18,7 @@ class SamplesSet(list):
         self.signal = signal
 
     @classmethod
-    def from_directory(cls, instrument, directory_path='samples', start_seconds=0., end_seconds=None, load_all=True,
+    def from_directory(cls, instrument, directory_path='samples', start_seconds=0., end_seconds=None, load_all=LOAD_ALL,
                        partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, verbose=True):
         """ Recover a Samples Set from a directory.
 
@@ -63,14 +63,18 @@ class SamplesSet(list):
 
         return samples_set
 
-    def save(self, save_audio=False, save_array=True, save_image=True, save_info=True, naming_by="midi_number"):
+    def save(self, naming_by="midi_number", **kwargs):
+        save_audio = kwargs['save_audio']
+        save_array = kwargs['save_array']
+        save_image = kwargs['save_image']
+        save_info = kwargs['save_info']
         for sample in self:
             sample.save(save_audio=save_audio, save_array=save_array, save_image=save_image, save_info=save_info,
                         naming_by=naming_by)
 
     @classmethod
     def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", write=True,
-                       save=True, verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
+                       save=True, verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, **kwargs):
         """ Recover a Samples Set from a midi file and its corresponding audio file.
 
         Parameters
@@ -91,6 +95,8 @@ class SamplesSet(list):
                         - nameWithOctave: Naming the files by the name of the notes in the english system.
             write: bool
                 If True then the audio files are witten.
+            save: bool
+                If True then the sample is saved.
             verbose: bool
                 If True then log info is emitted. Default True.
 
@@ -136,7 +142,8 @@ class SamplesSet(list):
             if write:
                 wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, note_signal)
             if save:
-                sample.save()
+                sample.save(save_audio=kwargs['save_audio'], save_array=kwargs['save_array'],
+                            save_image=kwargs['save_image'], save_info=kwargs['save_info'])
         end = time.time()
         if verbose:
             log.info("Time to recover samples: " + str(round(end - sta, 3)) + " seconds.")
@@ -166,7 +173,7 @@ class Sample(Note):
         return result
 
     @classmethod
-    def from_file(cls, file_name, load_all=True, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
+    def from_file(cls, file_name, load_all=LOAD_ALL, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
                   partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
         signal = signal_from_file(file_name, audio_path=audio_path)
         if end_seconds:
@@ -282,8 +289,8 @@ class Sample(Note):
             plt.close()
         # Save info
         if save_info:
-            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_distribution' + '.npy'), self.partials_distribution,
-                    allow_pickle=True)
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_distribution' + '.npy'),
+                    self.partials_distribution.linear_regressions, allow_pickle=True)
             np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_bins' + '.npy'), self.partials_bins,
                     allow_pickle=True)
             np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_amplitudes' + '.npy'), self.partials_amplitudes,
@@ -305,11 +312,13 @@ class LinearPartialsDistribution(PartialsDistribution):
         self.rvalue = linear_regressions[:, 2]
         self.pvalue = linear_regressions[:, 3]
         self.stderr = linear_regressions[:, 4]
+        self.linear_regressions = linear_regressions
 
 
 if __name__ == '__main__':
     _samples_name = 'samples'
     _instrument = "MyPiano"
 
-    _samples_set = SamplesSet.from_directory("MyPiano", "samples", start_seconds=0., end_seconds=None, load_all=True)
-    # _samples_set = SamplesSet.from_midi_file("MyPiano", "samples")
+    _samples_set = SamplesSet.from_directory("MyPiano", "samples", load_all=LOAD_ALL)
+    # _samples_set = SamplesSet.from_midi_file("MyPiano", "samples", save_audio=False, save_array=False,
+    #                                          save_image=False, save_info=True)

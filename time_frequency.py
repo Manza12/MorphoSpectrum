@@ -1,9 +1,10 @@
 import nnAudio.Spectrogram as Spec
 from parameters import *
 
-cqt_layer = Spec.CQT(sr=FS, hop_length=HOP_LENGTH, fmin=F_MIN, n_bins=N_BINS, bins_per_octave=BINS_PER_OCTAVE,
-                     norm=NORM, pad_mode='constant', window=WINDOW)
-cqt_layer.to(DEVICE)
+if not LOAD_ALL:
+    cqt_layer = Spec.CQT(sr=FS, hop_length=HOP_LENGTH, fmin=F_MIN, n_bins=N_BINS, bins_per_octave=BINS_PER_OCTAVE,
+                         norm=NORM, pad_mode='constant', window=WINDOW)
+    cqt_layer.to(DEVICE)
 
 
 def cqt(signal, numpy=True):
