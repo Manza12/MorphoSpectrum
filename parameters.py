@@ -13,7 +13,7 @@ plt.ion()
 FS = 44100  # in Hertz
 TIME_RESOLUTION = 0.01  # in seconds
 HOP_LENGTH = int(FS * TIME_RESOLUTION)  # in samples
-F_MIN = 55. / 2**(5/12)  # Mi0: 41.20 Hz
+F_MIN = 55. / 2
 F_MAX = 20000.
 BINS_PER_OCTAVE = 12 * 6
 N_BINS = int(np.floor(BINS_PER_OCTAVE * np.log2(F_MAX / F_MIN)))
@@ -64,7 +64,7 @@ F_REF = 440
 NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
-LOAD_ALL = True
+LOAD_ALL = False
 
 # Logs
 configure_logs()

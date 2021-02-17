@@ -73,8 +73,8 @@ class SamplesSet(list):
                         naming_by=naming_by)
 
     @classmethod
-    def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", write=True,
-                       save=True, verbose=True, partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, **kwargs):
+    def from_midi_file(cls, instrument, samples_name, resonance_seconds=0., naming_by="midi_number", save=True, verbose=True,
+                       partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE, **kwargs):
         """ Recover a Samples Set from a midi file and its corresponding audio file.
 
         Parameters
@@ -93,10 +93,12 @@ class SamplesSet(list):
                     Options:
                         - midi_number: Naming the files by the note number in MIDI system.
                         - nameWithOctave: Naming the files by the name of the notes in the english system.
-            write: bool
-                If True then the audio files are witten.
             save: bool
-                If True then the sample is saved.
+                If True then the sample is saved. Additional parameters should then be passed in kwargs:
+                    - save_audio: bool
+                    - save_array: bool
+                    - save_image: bool
+                    - save_info: bool
             verbose: bool
                 If True then log info is emitted. Default True.
 
@@ -119,14 +121,6 @@ class SamplesSet(list):
             start_samples = np.floor(note.start_seconds * FS).astype(int)
             end_samples = np.ceil((note.end_seconds + resonance_seconds) * FS).astype(int)
             note_signal = signal[start_samples:end_samples]
-            if naming_by == "midi_number":
-                output_name = str(note.note_number) + "_" + str(round(note.duration + resonance_seconds, 3)) + "_" \
-                              + str(note.velocity)
-            elif naming_by == "nameWithOctave":
-                output_name = note.pitch.nameWithOctave + "_" + str(round(note.duration + resonance_seconds, 3)) + "_" \
-                              + str(note.velocity)
-            else:
-                raise Exception("Parameter naming_by not understood.")
 
             spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(note_signal)
             fundamental_bin, partials_bins = Sample.get_partials_bins(note.note_number)
@@ -139,11 +133,9 @@ class SamplesSet(list):
                             partials_distribution)
 
             samples_set.append(sample)
-            if write:
-                wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, note_signal)
             if save:
                 sample.save(save_audio=kwargs['save_audio'], save_array=kwargs['save_array'],
-                            save_image=kwargs['save_image'], save_info=kwargs['save_info'])
+                            save_image=kwargs['save_image'], save_info=kwargs['save_info'], naming_by=naming_by)
         end = time.time()
         if verbose:
             log.info("Time to recover samples: " + str(round(end - sta, 3)) + " seconds.")
@@ -319,6 +311,6 @@ if __name__ == '__main__':
     _samples_name = 'samples'
     _instrument = "MyPiano"
 
-    _samples_set = SamplesSet.from_directory("MyPiano", "samples", load_all=LOAD_ALL)
-    # _samples_set = SamplesSet.from_midi_file("MyPiano", "samples", save_audio=False, save_array=False,
-    #                                          save_image=False, save_info=True)
+    # _samples_set = SamplesSet.from_directory("MyPiano", "samples", load_all=LOAD_ALL)
+    _samples_set = SamplesSet.from_midi_file("MyPiano", "samples", save_audio=True, save_array=True,
+                                             save_image=True, save_info=True)
