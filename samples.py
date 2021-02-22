@@ -7,7 +7,7 @@ from plots import plot_cqt
 from signals import signal_from_file, wav
 from tqdm import tqdm
 from time_frequency import cqt
-from music import Note, Pitch
+from music import Note, Pitch, Piece
 import collections.abc as abc
 import scipy.stats as stat
 from abc import ABC, abstractmethod
@@ -237,6 +237,17 @@ class SamplesSet(abc.MutableMapping):
 
         return samples_set
 
+    def synthetize(self, piece: Piece):
+        signal = np.zeros(int(np.ceil(piece.duration * FS)))
+
+        for note in tqdm(piece):
+            sample = self[note.note_number]
+            n_start = int(note.start_seconds*FS)
+            n_end = int(note.end_seconds*FS)
+            signal[n_start:n_end] += sample.synthetize(note.duration, note.velocity)[0:n_end-n_start]
+
+        return signal
+
 
 class SamplesSetOld(list):
     def __init__(self, instrument, samples_name=None, piece=None, signal=None):
@@ -377,9 +388,13 @@ if __name__ == '__main__':
                                                            harmonic=True, frequency_decay_dependency=0.3)
     _samples_set = SamplesSet.from_synthesis(_partials_distribution)
 
-    _sample = _samples_set[69]
+    # _sample = _samples_set[69]
+    #
+    # _signal = _sample.synthetize(5, 90)
 
-    _signal = _sample.synthetize(5, 90)
+    _piece = midi2piece('prelude_em')
+
+    _signal = _samples_set.synthetize(_piece)
 
     sd.play(_signal, FS)
 
