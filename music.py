@@ -43,16 +43,27 @@ class Note(Pitch):
 class Piece(abc.MutableSequence):
     def __init__(self, name: str = None):
         self.name = name
+        self.duration = 0
         self._notes_list = list()
 
     def insert(self, index: int, value: Note) -> None:
+        # Check type
         if not type(value) is Note:
             raise TypeError("%r should be a Note" % value)
+        # Update length
+        if value.end_seconds > self.duration:
+            self.duration = value.end_seconds
+        # Insert
         self._notes_list.insert(index, value)
 
     def append(self, value: Note) -> None:
+        # Check type
         if not type(value) is Note:
             raise TypeError("%r should be a Note" % value)
+        # Update length
+        if value.end_seconds > self.duration:
+            self.duration = value.end_seconds
+        # Append
         self._notes_list.append(value)
 
     def __len__(self) -> int:
@@ -62,8 +73,13 @@ class Piece(abc.MutableSequence):
         self._notes_list.__delitem__(index)
 
     def __setitem__(self, index: int, value: Note) -> None:
+        # Check type
         if not type(value) is Note:
             raise TypeError("%r should be a Note" % value)
+        # Update length
+        if value.end_seconds > self.duration:
+            self.duration = value.end_seconds
+        # Set item
         self._notes_list.__setitem__(index, value)
 
     def __getitem__(self, index: int) -> Note:
@@ -89,8 +105,11 @@ if __name__ == '__main__':
     configure_logs('music')
 
     _piece = Piece("Example")
-    _note = Note(69, 100, 0., 1.)
-    _piece.append(_note)
+    _note_1 = Note(69, 100, 0., 1.)
+    _note_2 = Note(69, 100, 0.5, 1.4)
+    _piece.append(_note_1)
+    _piece.append(_note_2)
 
     log.info(_piece)
     log.info("Length of " + _piece.name + ": " + str(len(_piece)))
+    log.info("Duration of " + _piece.name + ": " + str(_piece.duration))
