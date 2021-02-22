@@ -1,5 +1,4 @@
 import numpy as np
-import librosa as rosa
 import torch
 from pathlib import Path
 from logs import *
@@ -22,7 +21,7 @@ WINDOW = "hann"  # Options:
 # "hann": Hann window
 # ('tukey', 0.5): Tukey window with taper parameter 0.5
 # ("gaussian", 2048)
-FREQUENCIES = rosa.core.cqt_frequencies(N_BINS, F_MIN, BINS_PER_OCTAVE)
+FREQUENCIES = F_MIN * 2**(np.arange(N_BINS) / BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
 NOISE_THRESHOLD = -80  # in dB
 
@@ -33,7 +32,8 @@ DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 CWD = Path(__file__).parent.absolute()
 AUDIO_PATH = Path('audio')
 MIDI_PATH = Path('midi')
-SAMPLES_PATH = Path('samples')
+SAMPLES_INSTRUMENT = 'MyPiano'
+SAMPLES_PATH = Path('samples') / Path(SAMPLES_INSTRUMENT)
 SAMPLES_AUDIO_PATH = SAMPLES_PATH / Path('audio')
 SAMPLES_ARRAYS_PATH = SAMPLES_PATH / Path('arrays')
 SAMPLES_IMAGES_PATH = SAMPLES_PATH / Path('images')
@@ -65,7 +65,8 @@ NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
 LOAD_ALL = True
-USE_CQT = True
+USE_CQT = False
 
 # Logs
-# configure_logs()
+if __name__ == '__main__':
+    configure_logs('parameters')

@@ -1,16 +1,244 @@
 import os
+from typing import Iterator, Union
 from midi import midi2piece
 from parameters import *
-from partials_distribution import LinearPartialsDistribution
+from partials_distribution import PartialsDistribution, LinearPartialsDistribution, SyntheticPartialsDistribution
 from plots import plot_cqt
 from signals import signal_from_file, wav
 from tqdm import tqdm
 from time_frequency import cqt
-from music import Note
+from music import Note, Pitch
+import collections.abc as abc
 import scipy.stats as stat
+from abc import ABC, abstractmethod
+import sounddevice as sd
 
 
-class SamplesSet(list):
+class AbstractSample(ABC):
+    @abstractmethod
+    def synthetize(self, duration: Union[float, int], velocity: int):
+        if not (type(duration) is float or type(duration) is int):
+            raise TypeError("%r should be a float" % duration)
+        if not type(velocity) is int:
+            raise TypeError("%r should be a int" % velocity)
+        if not duration >= 0.:
+            raise ValueError("duration should be greater than 0")
+        if not 0 <= velocity < 127:
+            raise ValueError("velocity should be comprised between 0 and 127")
+
+
+class Sample(Pitch, AbstractSample):
+
+    def __init__(self, note_number: int, partials_distribution: PartialsDistribution):
+        super(Sample, self).__init__(note_number)
+        self.partials_distribution = partials_distribution
+
+    def __str__(self) -> str:
+        return self.pitch.unicodeNameWithOctave
+
+    def synthetize(self, duration: float, velocity: int):
+        super().synthetize(duration, velocity)
+        return self.partials_distribution.synthetize(self.pitch.frequency, duration, velocity)
+
+    @classmethod
+    def from_partials_distribution(cls, number: int, partials_distribution: PartialsDistribution):
+        return cls(number, partials_distribution)
+
+    @staticmethod
+    def get_partials_bins(note_number):
+        fundamental_bin = np.round(((note_number - NUMBER_F_MIN) / 12) * BINS_PER_OCTAVE).astype(int)
+        partials_bins = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
+        partials_bins_allowed = partials_bins[partials_bins < N_BINS]
+
+        return fundamental_bin, partials_bins_allowed
+
+    def create_strel(self):
+        raise Exception("Functionality not implemented.")
+
+
+class PlayedSample(Sample, Note):
+
+    def __init__(self, velocity, note_number, start_seconds, end_seconds, signal, spectrogram_log, time_vector,
+                 fundamental_bin, partials_bins, partials_amplitudes, partials_distribution, file_name=None):
+        super().__init__(note_number, velocity, start_seconds, end_seconds)
+        self.file_name = file_name
+        self.fundamental_bin = fundamental_bin
+        self.partials_bins = partials_bins
+        self.signal = signal
+        self.spectrogram_log = spectrogram_log
+        self.time_vector = time_vector
+        self.partials_amplitudes = partials_amplitudes
+        self.partials_distribution = partials_distribution
+
+    def __str__(self, *kwargs):
+        result = ""
+        result += self.pitch.unicodeNameWithOctave
+        result += " (" + str(self.note_number) + ")"
+        result += ", duration: " + str(round(self.duration, 3)) + " s"
+        result += ", velocity: " + str(self.velocity)
+        return result
+
+    @classmethod
+    def from_partials_distribution(cls, number: int, duration: float, partials_distribution: PartialsDistribution):
+        sample = None  # cls()
+        return sample
+        # ToDo: implement creation from partials distribution
+
+    @classmethod
+    def from_file(cls, file_name, load_all=LOAD_ALL, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
+                  partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
+        signal = signal_from_file(file_name, audio_path=audio_path)
+        if end_seconds:
+            signal_cut = signal[np.floor(start_seconds * FS).astype(int): np.ceil(end_seconds * FS).astype(int)]
+        else:
+            signal_cut = signal[np.floor(start_seconds * FS).astype(int):]
+            end_seconds = signal_cut.size / FS
+
+        parameters = file_name.split("_")
+        note_number = int(parameters[0])
+        duration = float(parameters[1])
+        end_seconds = min(end_seconds, duration)
+        velocity = int(parameters[2])
+
+        if load_all:
+            time_vector = np.arange(np.ceil(signal_cut.size / HOP_LENGTH).astype(int)) / (FS / HOP_LENGTH)
+            spectrogram = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
+            partials_bins = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_bins.npy"))
+            fundamental_bin = partials_bins[0]
+            partials_amplitudes = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_amplitudes.npy"))
+            partials_distribution = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_distribution.npy"))
+        else:
+            spectrogram, time_vector = cqt(signal_cut)
+            fundamental_bin, partials_bins = PlayedSample.get_partials_bins(note_number)
+            partials_amplitudes, partials_distribution = PlayedSample.get_partials_info(spectrogram, partials_bins,
+                                                                                  time_vector,
+                                                                                  partials_distribution_type)
+
+        return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram, time_vector, fundamental_bin,
+                   partials_bins, partials_amplitudes, partials_distribution, file_name=file_name)
+
+    @staticmethod
+    def get_partials_bins(note_number):
+        fundamental_bin = np.round(((note_number - NUMBER_F_MIN) / 12) * BINS_PER_OCTAVE).astype(int)
+        partials_bins = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
+        partials_bins_allowed = partials_bins[partials_bins < N_BINS]
+
+        return fundamental_bin, partials_bins_allowed
+
+    @staticmethod
+    def get_partials_info(spectrogram_log, partials_bins, time_vector, partials_distribution_type, plot_regress=False):
+        partials_amplitudes = spectrogram_log[partials_bins, :]
+
+        if partials_distribution_type == 'linear':
+            linear_regressions = np.empty((partials_amplitudes.shape[0], 5))
+            for i in range(partials_amplitudes.shape[0]):
+                time_vector_over_noise = time_vector[partials_amplitudes[i] >= NOISE_THRESHOLD]
+                partials_amplitudes_over_noise = partials_amplitudes[i, partials_amplitudes[i] >= NOISE_THRESHOLD]
+
+                if partials_amplitudes_over_noise.size == 0:
+                    time_vector_over_noise = time_vector[0:2]
+                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
+                elif partials_amplitudes_over_noise.size == 1:
+                    time_vector_over_noise = time_vector[0:2]
+                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
+
+                linear_regression = stat.linregress(time_vector_over_noise, partials_amplitudes_over_noise)
+                linear_regressions[i, :] = linear_regression
+
+                if plot_regress:
+                    PlayedSample.plot_regression(linear_regression, time_vector_over_noise, partials_amplitudes_over_noise)
+
+            partials_distribution = LinearPartialsDistribution(partials_amplitudes, linear_regressions)
+        else:
+            raise Exception("Partials distribution type not understood.")
+
+        return partials_amplitudes, partials_distribution
+
+    @staticmethod
+    def plot_regression(linear_regression, time_vector_under_noise, partials_amplitudes_under_noise):
+        plt.figure()
+        plt.plot(time_vector_under_noise, partials_amplitudes_under_noise, 'o', label='original data')
+        plt.plot(time_vector_under_noise, linear_regression.intercept +
+                 linear_regression.slope * time_vector_under_noise, 'r', label='fitted line')
+        plt.legend()
+        plt.show()
+
+    def create_strel(self):
+        self.file_name = self.file_name
+        raise Exception("Functionality not implemented.")
+
+    def save(self, save_audio=False, save_array=True, save_image=True, save_info=True, naming_by="midi_number"):
+        # The output_name for the saving data
+        if naming_by == "midi_number":
+            output_name = str(self.note_number) + "_" + str(round(self.duration, 3)) \
+                          + "_" + str(self.velocity)
+        elif naming_by == "nameWithOctave":
+            output_name = self.pitch.nameWithOctave + "_" + str(round(self.duration, 3)) \
+                          + "_" + str(self.velocity)
+        else:
+            raise Exception("Parameter naming_by not understood.")
+
+        # Save the audio
+        if save_audio:
+            wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, self.signal)
+
+        # Save array
+        if save_array:
+            np.save(Path(SAMPLES_ARRAYS_PATH) / Path(output_name + '_spectrogram' + '.npy'), self.spectrogram_log,
+                    allow_pickle=True)
+
+        # Save image
+        if save_image:
+            plot_cqt(self.spectrogram_log, self.time_vector, fig_title="Sample " + str(self), show=False)
+            plt.savefig(Path(SAMPLES_IMAGES_PATH) / Path(output_name + '.png'), dpi=DPI, format='png')
+            plt.close()
+        # Save info
+        if save_info:
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_distribution' + '.npy'),
+                    self.partials_distribution.linear_regressions, allow_pickle=True)
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_bins' + '.npy'), self.partials_bins,
+                    allow_pickle=True)
+            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_amplitudes' + '.npy'), self.partials_amplitudes,
+                    allow_pickle=True)
+
+
+class SamplesSet(abc.MutableMapping):
+    def __init__(self, name: str = None):
+        self._map = {}
+        self.name = name
+
+    def __setitem__(self, k: int, v: Sample) -> None:
+        if not type(k) is int and type(v) is Sample:
+            raise TypeError("%r should be an int representing the MIDI note and %r a Sample" % (k, v))
+        self._map.__setitem__(k, v)
+
+    def __delitem__(self, v: Sample) -> None:
+        if not type(v) is Sample:
+            raise TypeError("%r should be a Sample" % v)
+        self._map.__delitem__(v)
+
+    def __getitem__(self, k: int) -> Sample:
+        if not type(k) is int:
+            raise TypeError("%r should be an int representing the MIDI note" % k)
+        return self._map.__getitem__(k)
+
+    def __len__(self) -> int:
+        return self._map.__len__()
+
+    def __iter__(self) -> Iterator[str]:
+        return self._map.__iter__()
+
+    @classmethod
+    def from_synthesis(cls, partials_distribution: PartialsDistribution, name: str = None, min_note: int = 21, max_note: int = 108):
+        samples_set = cls(name)
+
+        for i in range(min_note, max_note, 1):
+            samples_set[i] = Sample(i, partials_distribution)
+
+        return samples_set
+
+
+class SamplesSetOld(list):
     def __init__(self, instrument, samples_name=None, piece=None, signal=None):
         super().__init__()
         self.instrument = instrument
@@ -55,7 +283,7 @@ class SamplesSet(list):
 
         sta = time.time()
         for file in tqdm(files):
-            sample = Sample.from_file(file[:-4], start_seconds=start_seconds, load_all=load_all,
+            sample = PlayedSample.from_file(file[:-4], start_seconds=start_seconds, load_all=load_all,
                                       end_seconds=end_seconds, partials_distribution_type=partials_distribution_type)
             samples_set.append(sample)
         end = time.time()
@@ -125,11 +353,11 @@ class SamplesSet(list):
 
             spectrogram, time_vector = cqt(note_signal)
             fundamental_bin, partials_bins = Sample.get_partials_bins(note.note_number)
-            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram, partials_bins,
+            partials_amplitudes, partials_distribution = PlayedSample.get_partials_info(spectrogram, partials_bins,
                                                                                   time_vector,
                                                                                   partials_distribution_type)
 
-            sample = Sample(note.velocity, note.note_number, note.start_seconds, note.end_seconds, note_signal,
+            sample = PlayedSample(note.velocity, note.note_number, note.start_seconds, note.end_seconds, note_signal,
                             spectrogram, time_vector, fundamental_bin, partials_bins, partials_amplitudes,
                             partials_distribution)
 
@@ -144,149 +372,20 @@ class SamplesSet(list):
         return samples_set
 
 
-class Sample(Note):
-    def __init__(self, velocity, note_number, start_seconds, end_seconds, signal, spectrogram_log, time_vector,
-                 fundamental_bin, partials_bins, partials_amplitudes, partials_distribution, file_name=None):
-        super().__init__(note_number, velocity, start_seconds, end_seconds)
-        self.file_name = file_name
-        self.fundamental_bin = fundamental_bin
-        self.partials_bins = partials_bins
-        self.signal = signal
-        self.spectrogram_log = spectrogram_log
-        self.time_vector = time_vector
-        self.partials_amplitudes = partials_amplitudes
-        self.partials_distribution = partials_distribution
-
-    def __str__(self, *kwargs):
-        result = ""
-        result += self.pitch.unicodeNameWithOctave
-        result += " (" + str(self.note_number) + ")"
-        result += ", duration: " + str(round(self.duration, 3)) + " s"
-        result += ", velocity: " + str(self.velocity)
-        return result
-
-    @classmethod
-    def from_file(cls, file_name, load_all=LOAD_ALL, start_seconds=0., end_seconds=None, audio_path=SAMPLES_AUDIO_PATH,
-                  partials_distribution_type=PARTIALS_DISTRIBUTION_TYPE):
-        signal = signal_from_file(file_name, audio_path=audio_path)
-        if end_seconds:
-            signal_cut = signal[np.floor(start_seconds * FS).astype(int): np.ceil(end_seconds * FS).astype(int)]
-        else:
-            signal_cut = signal[np.floor(start_seconds * FS).astype(int):]
-            end_seconds = signal_cut.size / FS
-
-        parameters = file_name.split("_")
-        note_number = int(parameters[0])
-        duration = float(parameters[1])
-        end_seconds = min(end_seconds, duration)
-        velocity = int(parameters[2])
-
-        if load_all:
-            time_vector = np.arange(np.ceil(signal_cut.size / HOP_LENGTH).astype(int)) / (FS / HOP_LENGTH)
-            spectrogram = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
-            partials_bins = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_bins.npy"))
-            fundamental_bin = partials_bins[0]
-            partials_amplitudes = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_amplitudes.npy"))
-            partials_distribution = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_distribution.npy"))
-        else:
-            spectrogram, time_vector = cqt(signal_cut)
-            fundamental_bin, partials_bins = Sample.get_partials_bins(note_number)
-            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram, partials_bins,
-                                                                                  time_vector,
-                                                                                  partials_distribution_type)
-
-        return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram, time_vector, fundamental_bin,
-                   partials_bins, partials_amplitudes, partials_distribution, file_name=file_name)
-
-    @staticmethod
-    def get_partials_bins(note_number):
-        fundamental_bin = np.round(((note_number - NUMBER_F_MIN) / 12) * BINS_PER_OCTAVE).astype(int)
-        partials_bins = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
-        partials_bins_allowed = partials_bins[partials_bins < N_BINS]
-
-        return fundamental_bin, partials_bins_allowed
-
-    @staticmethod
-    def get_partials_info(spectrogram_log, partials_bins, time_vector, partials_distribution_type, plot_regress=False):
-        partials_amplitudes = spectrogram_log[partials_bins, :]
-
-        if partials_distribution_type == 'linear':
-            linear_regressions = np.empty((partials_amplitudes.shape[0], 5))
-            for i in range(partials_amplitudes.shape[0]):
-                time_vector_over_noise = time_vector[partials_amplitudes[i] >= NOISE_THRESHOLD]
-                partials_amplitudes_over_noise = partials_amplitudes[i, partials_amplitudes[i] >= NOISE_THRESHOLD]
-
-                if partials_amplitudes_over_noise.size == 0:
-                    time_vector_over_noise = time_vector[0:2]
-                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
-                elif partials_amplitudes_over_noise.size == 1:
-                    time_vector_over_noise = time_vector[0:2]
-                    partials_amplitudes_over_noise = partials_amplitudes[i, 0:2]
-
-                linear_regression = stat.linregress(time_vector_over_noise, partials_amplitudes_over_noise)
-                linear_regressions[i, :] = linear_regression
-
-                if plot_regress:
-                    Sample.plot_regression(linear_regression, time_vector_over_noise, partials_amplitudes_over_noise)
-
-            partials_distribution = LinearPartialsDistribution(partials_amplitudes, linear_regressions)
-        else:
-            raise Exception("Partials distribution type not understood.")
-
-        return partials_amplitudes, partials_distribution
-
-    @staticmethod
-    def plot_regression(linear_regression, time_vector_under_noise, partials_amplitudes_under_noise):
-        plt.figure()
-        plt.plot(time_vector_under_noise, partials_amplitudes_under_noise, 'o', label='original data')
-        plt.plot(time_vector_under_noise, linear_regression.intercept +
-                 linear_regression.slope * time_vector_under_noise, 'r', label='fitted line')
-        plt.legend()
-        plt.show()
-
-    def create_strel(self):
-        self.file_name = self.file_name
-        raise Exception("Functionality not implemented.")
-
-    def save(self, save_audio=False, save_array=True, save_image=True, save_info=True, naming_by="midi_number"):
-        # The output_name for the saving data
-        if naming_by == "midi_number":
-            output_name = str(self.note_number) + "_" + str(round(self.duration, 3)) \
-                          + "_" + str(self.velocity)
-        elif naming_by == "nameWithOctave":
-            output_name = self.pitch.nameWithOctave + "_" + str(round(self.duration, 3)) \
-                          + "_" + str(self.velocity)
-        else:
-            raise Exception("Parameter naming_by not understood.")
-
-        # Save the audio
-        if save_audio:
-            wav.write(Path(SAMPLES_AUDIO_PATH) / Path(output_name + '.wav'), FS, self.signal)
-
-        # Save array
-        if save_array:
-            np.save(Path(SAMPLES_ARRAYS_PATH) / Path(output_name + '_spectrogram' + '.npy'), self.spectrogram_log,
-                    allow_pickle=True)
-
-        # Save image
-        if save_image:
-            plot_cqt(self.spectrogram_log, self.time_vector, fig_title="Sample " + str(self), show=False)
-            plt.savefig(Path(SAMPLES_IMAGES_PATH) / Path(output_name + '.png'), dpi=DPI, format='png')
-            plt.close()
-        # Save info
-        if save_info:
-            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_distribution' + '.npy'),
-                    self.partials_distribution.linear_regressions, allow_pickle=True)
-            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_bins' + '.npy'), self.partials_bins,
-                    allow_pickle=True)
-            np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_amplitudes' + '.npy'), self.partials_amplitudes,
-                    allow_pickle=True)
-
-
 if __name__ == '__main__':
-    _samples_name = 'samples'
-    _instrument = "MyPiano"
+    _partials_distribution = SyntheticPartialsDistribution(n_partials=8, frequency_evolution='inverse square', time_evolution='exponential decay',
+                                                           harmonic=True, frequency_decay_dependency=0.3)
+    _samples_set = SamplesSet.from_synthesis(_partials_distribution)
 
-    # _samples_set = SamplesSet.from_directory("MyPiano", "samples", load_all=LOAD_ALL)
-    _samples_set = SamplesSet.from_midi_file("MyPiano", "samples", save_audio=True, save_array=True,
-                                             save_image=True, save_info=True)
+    _sample = _samples_set[69]
+
+    _signal = _sample.synthetize(5, 90)
+
+    sd.play(_signal, FS)
+
+    # _samples_name = 'samples'
+    # _instrument = "MyPiano"
+    #
+    # # _samples_set = SamplesSet.from_directory("MyPiano", "samples", load_all=LOAD_ALL)
+    # _samples_set = SamplesSet.from_midi_file("MyPiano", "samples", save_audio=True, save_array=True,
+    #                                          save_image=True, save_info=True)

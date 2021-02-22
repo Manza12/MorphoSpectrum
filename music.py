@@ -4,15 +4,22 @@ from utils import ticks2seconds
 from parameters import log, configure_logs
 
 
-class Note:
-    def __init__(self, note_number, velocity, start_seconds, end_seconds):
+class Pitch:
+    def __init__(self, note_number: int):
         self.note_number = note_number
+        self.pitch = m21.pitch.Pitch(midi=note_number)
+
+    def __str__(self) -> str:
+        return self.pitch.unicodeNameWithOctave
+
+
+class Note(Pitch):
+    def __init__(self, note_number, velocity, start_seconds, end_seconds):
+        super().__init__(note_number)
         self.velocity = velocity
         self.start_seconds = start_seconds
         self.end_seconds = end_seconds
         self.duration = end_seconds - start_seconds
-
-        self.pitch = m21.pitch.Pitch(midi=note_number)
 
     @classmethod
     def from_midi(cls, note_number, velocity, start_ticks, end_ticks):
