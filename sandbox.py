@@ -20,16 +20,14 @@ partials_pos = fundamental_bin + np.round(np.log2(np.arange(N_PARTIALS) + 1) * B
 start = 2  # in seconds
 end = 6  # in seconds
 _signal = signal_from_file(sample_name, SAMPLES_AUDIO_PATH)
-_spectrogram = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
-_spectrogram_log = 20 * np.log10(_spectrogram + EPS)
-_time_vector = get_time_vector(_signal)[np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
-plot_cqt(_spectrogram_log, _time_vector, fig_title=sample_name)
+_spectrogram, _time_vector = cqt(_signal, numpy=True)[:, np.floor(start / TIME_RESOLUTION).astype(int): np.ceil(end / TIME_RESOLUTION).astype(int)]
+plot_cqt(_spectrogram, _time_vector, fig_title=sample_name)
 
-a_erosion_1 = erode(_spectrogram_log, _strel_1, _origin_1)
+a_erosion_1 = erode(_spectrogram, _strel_1, _origin_1)
 plot_cqt(a_erosion_1, _time_vector, fig_title="Erosion - 1", v_min=-40, c_map='Greys')
 
 # Spectrogram
-partials_amplitudes = _spectrogram_log[partials_pos, :]
+partials_amplitudes = _spectrogram[partials_pos, :]
 partials_distribution = partials_amplitudes[:, 0] - np.max(partials_amplitudes[:, 0])
 
 plt.figure()

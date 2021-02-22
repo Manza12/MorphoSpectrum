@@ -182,27 +182,20 @@ class Sample(Note):
 
         if load_all:
             time_vector = get_time_vector(signal_cut)
-            spectrogram_log = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
+            spectrogram = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
             partials_bins = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_bins.npy"))
             fundamental_bin = partials_bins[0]
             partials_amplitudes = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_amplitudes.npy"))
             partials_distribution = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_distribution.npy"))
         else:
-            spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(signal_cut)
+            spectrogram, time_vector = cqt(signal_cut)
             fundamental_bin, partials_bins = Sample.get_partials_bins(note_number)
-            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
+            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram, partials_bins,
                                                                                   time_vector,
                                                                                   partials_distribution_type)
 
-        return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram_log, time_vector, fundamental_bin,
+        return cls(velocity, note_number, 0, end_seconds, signal_cut, spectrogram, time_vector, fundamental_bin,
                    partials_bins, partials_amplitudes, partials_distribution, file_name=file_name)
-
-    @staticmethod
-    def get_spectrogram(signal):
-        spectrogram = cqt(signal, numpy=True)
-        spectrogram_log = 20 * np.log10(spectrogram + EPS)
-        time_vector = get_time_vector(signal)
-        return spectrogram, spectrogram_log, time_vector
 
     @staticmethod
     def get_partials_bins(note_number):
