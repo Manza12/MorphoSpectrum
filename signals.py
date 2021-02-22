@@ -21,7 +21,3 @@ def signal_from_file(file_name, audio_path=AUDIO_PATH):
     assert fs == FS
 
     return signal
-
-
-def get_time_vector(signal):
-    return np.arange(np.ceil(signal.size / HOP_LENGTH).astype(int)) / (FS / HOP_LENGTH)

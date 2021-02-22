@@ -2,7 +2,7 @@ from parameters import *
 from scipy.ndimage import grey_erosion
 
 from plots import plot_cqt
-from signals import get_time_vector, signal_from_file
+from signals import signal_from_file
 from time_frequency import cqt
 
 

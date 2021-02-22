@@ -1,8 +1,7 @@
-import matplotlib.pyplot as plt
 from mathematical_morphology import erode
 from parameters import *
 from plots import plot_cqt
-from signals import signal_from_file, get_time_vector
+from signals import signal_from_file
 from time_frequency import cqt
 
 # Structural element for frequency leakage erosion

@@ -2,7 +2,7 @@ import os
 from midi import midi2piece
 from parameters import *
 from plots import plot_cqt
-from signals import signal_from_file, wav, get_time_vector
+from signals import signal_from_file, wav
 from tqdm import tqdm
 from time_frequency import cqt
 from music import Note
@@ -122,14 +122,14 @@ class SamplesSet(list):
             end_samples = np.ceil((note.end_seconds + resonance_seconds) * FS).astype(int)
             note_signal = signal[start_samples:end_samples]
 
-            spectrogram, spectrogram_log, time_vector = Sample.get_spectrogram(note_signal)
+            spectrogram, time_vector = cqt(note_signal)
             fundamental_bin, partials_bins = Sample.get_partials_bins(note.note_number)
-            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram_log, partials_bins,
+            partials_amplitudes, partials_distribution = Sample.get_partials_info(spectrogram, partials_bins,
                                                                                   time_vector,
                                                                                   partials_distribution_type)
 
             sample = Sample(note.velocity, note.note_number, note.start_seconds, note.end_seconds, note_signal,
-                            spectrogram_log, time_vector, fundamental_bin, partials_bins, partials_amplitudes,
+                            spectrogram, time_vector, fundamental_bin, partials_bins, partials_amplitudes,
                             partials_distribution)
 
             samples_set.append(sample)
@@ -181,7 +181,7 @@ class Sample(Note):
         velocity = int(parameters[2])
 
         if load_all:
-            time_vector = get_time_vector(signal_cut)
+            time_vector = np.arange(np.ceil(signal_cut.size / HOP_LENGTH).astype(int)) / (FS / HOP_LENGTH)
             spectrogram = np.load(Path(SAMPLES_ARRAYS_PATH) / Path(file_name + "_spectrogram.npy"))
             partials_bins = np.load(Path(SAMPLES_INFO_PATH) / Path(file_name + "_bins.npy"))
             fundamental_bin = partials_bins[0]
