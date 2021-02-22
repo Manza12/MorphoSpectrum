@@ -1,4 +1,3 @@
-from datetime import timedelta
 from datetime import time as tm
 import math
 import matplotlib.ticker as tick
@@ -27,8 +26,11 @@ def format_time(x, pos, t):
             return str(round(t[n], 3)) + " s"
         else:
             decomposition = math.modf(round(t[n], 6))
-            td = timedelta(seconds=round(decomposition[1]), microseconds=round(decomposition[0] * 1e6))
-            return tm(second=td.seconds, microsecond=td.microseconds).isoformat(timespec='milliseconds')[3:]
+            s = round(decomposition[1])
+            hours = s // (60 * 60)
+            minutes = (s - hours * 60 * 60) // 60
+            seconds = s - (hours*60*60) - (minutes*60)
+            return tm(second=seconds, minute=minutes, hour=hours, microsecond=round(decomposition[0] * 1e6)).isoformat(timespec='milliseconds')[3:]
     else:
         return ""
 

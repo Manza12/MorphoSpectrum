@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import time
 
 time.time()
-plt.ion()
+# plt.ion()
 
 # Analysis parameters
 FS = 44100  # in Hertz
@@ -24,7 +24,7 @@ WINDOW = "hann"  # Options:
 # ("gaussian", 2048)
 FREQUENCIES = rosa.core.cqt_frequencies(N_BINS, F_MIN, BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
-NOISE_THRESHOLD = -60  # in dB
+NOISE_THRESHOLD = -80  # in dB
 
 # GPU parameters
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -64,7 +64,8 @@ F_REF = 440
 NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
-LOAD_ALL = False
+LOAD_ALL = True
+USE_CQT = True
 
 # Logs
 configure_logs()
