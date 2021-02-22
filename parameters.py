@@ -68,4 +68,4 @@ LOAD_ALL = True
 USE_CQT = True
 
 # Logs
-configure_logs()
+# configure_logs()
