@@ -1,6 +1,7 @@
 import os
 from midi import midi2piece
 from parameters import *
+from partials_distribution import LinearPartialsDistribution
 from plots import plot_cqt
 from signals import signal_from_file, wav
 from tqdm import tqdm
@@ -280,24 +281,6 @@ class Sample(Note):
                     allow_pickle=True)
             np.save(Path(SAMPLES_INFO_PATH) / Path(output_name + '_amplitudes' + '.npy'), self.partials_amplitudes,
                     allow_pickle=True)
-
-
-class PartialsDistribution:
-    def __init__(self, partials_amplitudes, distribution_type=None):
-        self.partials_amplitudes = partials_amplitudes
-        self.number_partials = partials_amplitudes.shape[0]
-        self.distribution_type = distribution_type
-
-
-class LinearPartialsDistribution(PartialsDistribution):
-    def __init__(self, partials_amplitudes, linear_regressions):
-        super().__init__(partials_amplitudes, distribution_type="linear")
-        self.slopes = linear_regressions[:, 0]
-        self.intercept = linear_regressions[:, 1]
-        self.rvalue = linear_regressions[:, 2]
-        self.pvalue = linear_regressions[:, 3]
-        self.stderr = linear_regressions[:, 4]
-        self.linear_regressions = linear_regressions
 
 
 if __name__ == '__main__':
