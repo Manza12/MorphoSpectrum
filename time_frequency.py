@@ -1,4 +1,5 @@
-import nnAudio.Spectrogram as Spec
+# import nnAudio.Spectrogram as Spec
+import Gon.Spectrogram as Spec
 from plots import plot_cqt
 from parameters import *
 

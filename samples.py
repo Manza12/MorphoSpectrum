@@ -4,7 +4,7 @@ from midi import midi2piece
 from parameters import *
 from partials_distribution import PartialsDistribution, LinearPartialsDistribution, SyntheticPartialsDistribution
 from plots import plot_cqt
-from signals import signal_from_file, wav
+from utils import signal_from_file
 from tqdm import tqdm
 from time_frequency import cqt
 from music import Note, Pitch, Piece
@@ -392,9 +392,11 @@ if __name__ == '__main__':
     #
     # _signal = _sample.synthetize(5, 90)
 
-    _piece = midi2piece('prelude_em')
+    _piece = midi2piece('prelude_543')
 
     _signal = _samples_set.synthetize(_piece)
+    _spectrogram, _time_vector = cqt(_signal)
+    plot_cqt(_spectrogram, _time_vector)
 
     sd.play(_signal, FS)
 

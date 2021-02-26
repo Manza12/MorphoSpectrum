@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from parameters import np, FS
 from typing import Union
 
+from utils import velocity2amplitude
+
 
 class PartialsDistribution(ABC):
     def __init__(self, n_partials: int):
@@ -64,7 +66,7 @@ class SyntheticPartialsDistribution(PartialsDistribution):
             frequency = - frequency
 
         if self.harmonic:
-            partials = (velocity / 128) * np.expand_dims(self.partial_power, 1) \
+            partials = velocity2amplitude(velocity) * np.expand_dims(self.partial_power, 1) \
                        * np.sin(2 * np.pi * np.expand_dims((np.arange(self.n_partials) + 1) * frequency, 1) * np.expand_dims(t, 0)) \
                        * np.exp(- 2 * np.pi * np.expand_dims(self.decay, 1) * np.expand_dims(t, 0))
             signal = np.sum(partials, 0)
