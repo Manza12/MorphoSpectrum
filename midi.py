@@ -39,7 +39,7 @@ def midi2piece(file_name):
                         delta_ticks += midi.tracks[0][m_end].time
                         if midi.tracks[0][m_end].note == msg.note and midi.tracks[0][m_end].velocity == 0:
                             note = Note.from_midi(msg.note, msg.velocity, time_ticks, time_ticks + delta_ticks)
-                            piece.add_note(note)
+                            piece.append(note)
                             break
                         m_end += 1
     else:

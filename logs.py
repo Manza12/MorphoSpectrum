@@ -1,8 +1,8 @@
 import logging as log
 
 
-def configure_logs():
-    log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='logs/main.log',
+def configure_logs(file_name: str):
+    log.basicConfig(level=log.INFO, format='%(asctime)s - %(levelname)s - %(message)s', filename='logs/' + file_name + '.log',
                     filemode='w')
 
     console = log.StreamHandler()
