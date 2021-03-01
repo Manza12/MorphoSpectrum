@@ -1,6 +1,7 @@
 from datetime import time as tm
 import math
 import matplotlib.ticker as tick
+
 from parameters import *
 
 
@@ -36,6 +37,7 @@ def format_time(x, pos, t):
 
 
 def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP, show=True):
+    # TODO: Plot with MIDI file superimposed
     fig = plt.figure(figsize=(2*320/DPI, 2*240/DPI), dpi=DPI)
 
     if fig_title:

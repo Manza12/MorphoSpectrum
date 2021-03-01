@@ -23,7 +23,7 @@ class AbstractSample(ABC):
             raise TypeError("%r should be a int" % velocity)
         if not duration >= 0.:
             raise ValueError("duration should be greater than 0")
-        if not 0 <= velocity < 127:
+        if not 0 <= velocity < 128:
             raise ValueError("velocity should be comprised between 0 and 127")
 
 
@@ -32,6 +32,7 @@ class Sample(Pitch, AbstractSample):
     def __init__(self, note_number: int, partials_distribution: PartialsDistribution):
         super(Sample, self).__init__(note_number)
         self.partials_distribution = partials_distribution
+        self.fundamental_bin, self.partials_bins_allowed = Sample.get_partials_bins(note_number)
 
     def __str__(self) -> str:
         return self.pitch.unicodeNameWithOctave
@@ -203,9 +204,10 @@ class PlayedSample(Sample, Note):
 
 
 class SamplesSet(abc.MutableMapping):
-    def __init__(self, name: str = None):
+    def __init__(self, name: str = None, partials_distribution: PartialsDistribution = None):
         self._map = {}
         self.name = name
+        self.partials_distribution = partials_distribution
 
     def __setitem__(self, k: int, v: Sample) -> None:
         if not type(k) is int and type(v) is Sample:
@@ -230,13 +232,14 @@ class SamplesSet(abc.MutableMapping):
 
     @classmethod
     def from_synthesis(cls, partials_distribution: PartialsDistribution, name: str = None, min_note: int = 21, max_note: int = 108):
-        samples_set = cls(name)
+        samples_set = cls(name=name, partials_distribution=partials_distribution)
 
         for i in range(min_note, max_note, 1):
             samples_set[i] = Sample(i, partials_distribution)
 
         return samples_set
 
+    # TODO: change synthetize for synthesize
     def synthetize(self, piece: Piece):
         signal = np.zeros(int(np.ceil(piece.duration * FS)))
 
@@ -383,20 +386,33 @@ class SamplesSetOld(list):
         return samples_set
 
 
+def get_samples_set(samples_type: str):
+    if samples_type == 'basic':
+        partials_distribution = SyntheticPartialsDistribution(n_partials=N_PARTIALS,
+                                                              frequency_evolution='inverse square',
+                                                              time_evolution='exponential decay', harmonic=True,
+                                                              frequency_decay_dependency=0.3)
+        samples_set = SamplesSet.from_synthesis(partials_distribution)
+
+        return samples_set
+    else:
+        raise ValueError('Invalid parameter samples_type.')
+
+
 if __name__ == '__main__':
-    _partials_distribution = SyntheticPartialsDistribution(n_partials=8, frequency_evolution='inverse square', time_evolution='exponential decay',
-                                                           harmonic=True, frequency_decay_dependency=0.3)
-    _samples_set = SamplesSet.from_synthesis(_partials_distribution)
+    _samples_set = get_samples_set('basic')
 
-    # _sample = _samples_set[69]
-    #
-    # _signal = _sample.synthetize(5, 90)
-
-    _piece = midi2piece('prelude_em')
+    _piece = midi2piece('tempest_3rd-start')
 
     _signal = _samples_set.synthetize(_piece)
+    _spectrogram, _time_vector = cqt(_signal)
 
-    sd.play(_signal, FS)
+    plot_cqt(_spectrogram, _time_vector)
+
+    play = False
+
+    if play:
+        sd.play(_signal, FS)
 
     # _samples_name = 'samples'
     # _instrument = "MyPiano"

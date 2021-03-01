@@ -12,7 +12,7 @@ def cqt(signal, numpy=True, db=True):
     time_array = np.arange(np.ceil(signal.size / HOP_LENGTH).astype(int)) / (FS / HOP_LENGTH)
 
     signal_tensor = torch.tensor(signal, device=DEVICE, dtype=torch.float)
-    cqt_tensor = cqt_layer(signal_tensor)
+    cqt_tensor = cqt_layer(signal_tensor, normalization_type='wrap')
 
     if db:
         cqt_tensor = 20 * torch.log10(cqt_tensor + EPS)

@@ -6,6 +6,7 @@ from typing import Union
 class PartialsDistribution(ABC):
     def __init__(self, n_partials: int):
         self.n_partials = n_partials
+        self.partial_power = None
 
     @abstractmethod
     def synthetize(self, frequency: Union[int, float], duration: Union[int, float], velocity: int):

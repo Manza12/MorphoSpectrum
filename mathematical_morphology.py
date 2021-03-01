@@ -1,14 +1,35 @@
-from parameters import *
-from scipy.ndimage import grey_erosion
+from scipy.ndimage import grey_erosion, grey_dilation, grey_closing, grey_opening
 
 from plots import plot_cqt
 from signals import signal_from_file
 from time_frequency import cqt
+from parameters import *
 
 
 def erode(image, strel, origin):
-    erosion = grey_erosion(image, origin=origin, structure=strel, mode='constant')
-    return erosion
+    # TODO: change origin from relative to absolute
+    return grey_erosion(image, origin=origin, structure=strel, mode='constant')
+
+
+def dilate(image, strel, origin):
+    # TODO: change origin from relative to absolute
+    return grey_dilation(image, origin=origin, structure=strel, mode='constant')
+
+
+def closing(image, strel, origin=None):
+    # TODO: change origin from relative to absolute
+    if not origin:
+        return grey_closing(image, structure=strel, mode='constant')
+    else:
+        return grey_closing(image, origin=origin, structure=strel, mode='constant')
+
+
+def opening(image, strel, origin=None):
+    # TODO: change origin from relative to absolute
+    if not origin:
+        return grey_opening(image, structure=strel, mode='constant')
+    else:
+        return grey_opening(image, origin=origin, structure=strel, mode='constant')
 
 
 if __name__ == '__main__':

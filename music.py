@@ -41,6 +41,7 @@ class Note(Pitch):
 
 
 class Piece(abc.MutableSequence):
+    # TODO: Plot piece in piano roll
     def __init__(self, name: str = None):
         self.name = name
         self.duration = 0
