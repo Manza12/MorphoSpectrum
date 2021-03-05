@@ -6,7 +6,6 @@ import time
 
 from logs import *
 
-configure_logs('parameters.log')
 time.time()
 # plt.ion()
 
@@ -26,10 +25,6 @@ WINDOW = "hann"  # Options:
 FREQUENCIES = F_MIN * 2**(np.arange(N_BINS) / BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
 NOISE_THRESHOLD = -80  # in dB
-
-# GPU parameters
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-log.info('Using device: ' + str(DEVICE))
 
 # Path parameters
 CWD = Path(__file__).parent.absolute()
@@ -68,7 +63,12 @@ NUMBER_REF = 69
 NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
 LOAD_ALL = True
-USE_CQT = True
+USE_CQT = False
+
+# GPU parameters
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+if USE_CQT:
+    log.info('Using device: ' + str(DEVICE))
 
 # Logs
 if __name__ == '__main__':

@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 samples_set = get_samples_set('basic')
 
-piece = midi2piece('tempest_3rd-start')
+piece = midi2piece('prelude_em')
 
 signal = samples_set.synthetize(piece)
 spectrogram, time_vector = cqt(signal)
