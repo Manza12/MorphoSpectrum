@@ -3,6 +3,7 @@ from plots import plot_cqt
 from samples import get_samples_set
 from time_frequency import cqt
 from signals import *
+from parameters import *
 import time
 import sounddevice as sd
 
@@ -26,7 +27,7 @@ def example_1():
 
 if __name__ == '__main__':
     # Parameters
-    play = False
+    play = True
 
     # Create the signal
     sta = time.time()
@@ -35,8 +36,8 @@ if __name__ == '__main__':
     log.info("Time to create samples set: " + str(round(end - sta, 3)) + " seconds.")
 
     sta = time.time()
-    piece = midi2piece('tempest_3rd-start')
-    signal = samples_set.synthetize(piece)
+    piece = midi2piece('prelude_em')
+    signal = samples_set.synthesize(piece)
     end = time.time()
     log.info("Time to synthesize the signal: " + str(round(end - sta, 3)) + " seconds.")
 
