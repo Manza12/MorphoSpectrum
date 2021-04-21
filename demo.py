@@ -14,7 +14,7 @@ samples_set = get_samples_set('basic')
 
 piece = midi2piece('prelude_em')
 
-signal = samples_set.synthetize(piece)
+signal = samples_set.synthesize(piece)
 spectrogram, time_vector = cqt(signal)
 
 plot_cqt(spectrogram, time_vector)
@@ -112,7 +112,7 @@ for f in tqdm(range(close_onsets.shape[0])):
             piece_reconstructed.append(note)
 
 # Re-synthesize piece
-signal_reconstructed = samples_set.synthetize(piece_reconstructed)
+signal_reconstructed = samples_set.synthesize(piece_reconstructed)
 sd.play(signal_reconstructed, FS)
 
 if __name__ == '__main__':

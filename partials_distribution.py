@@ -9,7 +9,7 @@ class PartialsDistribution(ABC):
         self.partial_power = None
 
     @abstractmethod
-    def synthetize(self, frequency: Union[int, float], duration: Union[int, float], velocity: int):
+    def synthesize(self, frequency: Union[int, float], duration: Union[int, float], velocity: int):
         if not (type(frequency) is float or type(frequency) is int):
             raise TypeError("%r should be a float" % frequency)
         if not (type(duration) is float or type(duration) is int):
@@ -23,7 +23,7 @@ class PartialsDistribution(ABC):
 
 
 class AnalyticPartialsDistribution(PartialsDistribution):
-    def synthetize(self, *args, **kwargs):
+    def synthesize(self, *args, **kwargs):
         # ToDo: Implement synthesis
         pass
 
@@ -54,7 +54,7 @@ class SyntheticPartialsDistribution(PartialsDistribution):
             else:
                 raise ValueError("Frequency decay dependency not implemented")
 
-    def synthetize(self, frequency: Union[int, float], duration: Union[int, float], velocity: int):
+    def synthesize(self, frequency: Union[int, float], duration: Union[int, float], velocity: int):
         if duration < 0:
             raise ValueError("duration should be positive.")
 

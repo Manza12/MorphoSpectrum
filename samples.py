@@ -16,7 +16,7 @@ import sounddevice as sd
 
 class AbstractSample(ABC):
     @abstractmethod
-    def synthetize(self, duration: Union[float, int], velocity: int):
+    def synthesize(self, duration: Union[float, int], velocity: int):
         if not (type(duration) is float or type(duration) is int):
             raise TypeError("%r should be a float" % duration)
         if not type(velocity) is int:
@@ -37,9 +37,9 @@ class Sample(Pitch, AbstractSample):
     def __str__(self) -> str:
         return self.pitch.unicodeNameWithOctave
 
-    def synthetize(self, duration: float, velocity: int):
-        super().synthetize(duration, velocity)
-        return self.partials_distribution.synthetize(self.pitch.frequency, duration, velocity)
+    def synthesize(self, duration: float, velocity: int):
+        super().synthesize(duration, velocity)
+        return self.partials_distribution.synthesize(self.pitch.frequency, duration, velocity)
 
     @classmethod
     def from_partials_distribution(cls, number: int, partials_distribution: PartialsDistribution):
@@ -239,15 +239,14 @@ class SamplesSet(abc.MutableMapping):
 
         return samples_set
 
-    # TODO: change synthetize for synthesize
-    def synthetize(self, piece: Piece):
+    def synthesize(self, piece: Piece):
         signal = np.zeros(int(np.ceil(piece.duration * FS)))
 
         for note in tqdm(piece):
             sample = self[note.note_number]
             n_start = int(note.start_seconds*FS)
             n_end = int(note.end_seconds*FS)
-            signal[n_start:n_end] += sample.synthetize(note.duration, note.velocity)[0:n_end-n_start]
+            signal[n_start:n_end] += sample.synthesize(note.duration, note.velocity)[0:n_end - n_start]
 
         return signal
 
@@ -404,7 +403,7 @@ if __name__ == '__main__':
 
     _piece = midi2piece('tempest_3rd-start')
 
-    _signal = _samples_set.synthetize(_piece)
+    _signal = _samples_set.synthesize(_piece)
     _spectrogram, _time_vector = cqt(_signal)
 
     plot_cqt(_spectrogram, _time_vector)
