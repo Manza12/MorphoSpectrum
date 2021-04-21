@@ -36,7 +36,7 @@ def format_time(x, pos, t):
         return ""
 
 
-def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP, show=True):
+def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_map=C_MAP, show=True, numpy=True):
     # TODO: Plot with MIDI file superimposed
     fig = plt.figure(figsize=(2*320/DPI, 2*240/DPI), dpi=DPI)
 
@@ -45,7 +45,12 @@ def plot_cqt(a, t, f=FREQUENCIES, fig_title=None, v_min=V_MIN, v_max=V_MAX, c_ma
 
     ax = fig.add_subplot(111)
 
-    ax.imshow(a, cmap=c_map, aspect='auto', vmin=v_min, vmax=v_max, origin='lower')
+    if numpy:
+        a_plot = a
+    else:
+        a_plot = a.cpu().numpy()
+
+    ax.imshow(a_plot, cmap=c_map, aspect='auto', vmin=v_min, vmax=v_max, origin='lower')
 
     # Freq axis
     ax.yaxis.set_major_formatter(tick.FuncFormatter(lambda x, pos: format_freq(x, pos, f)))

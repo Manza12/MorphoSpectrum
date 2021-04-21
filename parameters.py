@@ -3,9 +3,11 @@ import torch
 from pathlib import Path
 import matplotlib.pyplot as plt
 import time
+from typing import Union
 
 from logs import *
 
+types = [Union]
 time.time()
 # plt.ion()
 
@@ -64,6 +66,7 @@ NUMBER_F_MIN = NUMBER_REF - 12 * np.log2(F_REF / F_MIN).astype(int)
 PARTIALS_DISTRIBUTION_TYPE = "linear"
 LOAD_ALL = True
 USE_CQT = True
+MASTER_VOLUME = 0.1
 
 # GPU parameters
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

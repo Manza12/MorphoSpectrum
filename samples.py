@@ -385,12 +385,12 @@ class SamplesSetOld(list):
         return samples_set
 
 
-def get_samples_set(samples_type: str):
+def get_samples_set(samples_type: str, decay: float = 0.3):
     if samples_type == 'basic':
         partials_distribution = SyntheticPartialsDistribution(n_partials=N_PARTIALS,
                                                               frequency_evolution='inverse square',
                                                               time_evolution='exponential decay', harmonic=True,
-                                                              frequency_decay_dependency=0.3)
+                                                              frequency_decay_dependency=decay)
         samples_set = SamplesSet.from_synthesis(partials_distribution)
 
         return samples_set

@@ -22,8 +22,8 @@ def cqt(signal, numpy=True, db=True):
         torch.cuda.empty_cache()
         return cqt_array, time_array
     else:
-        time_tensor = torch.tensor(time_array)
-        return cqt_tensor, time_tensor
+        # time_tensor = torch.tensor(time_array)
+        return cqt_tensor[0, :, :], time_array
 
 
 if __name__ == '__main__':
