@@ -20,13 +20,13 @@ F_MAX = 20000.
 BINS_PER_OCTAVE = 12 * 4
 N_BINS = int(np.floor(BINS_PER_OCTAVE * np.log2(F_MAX / F_MIN)))
 NORM = 1  # Options: 1: L1 norm, 2: L2 norm
-WINDOW = "hann"  # Options:
+WINDOW = ("gaussian", 50)  # Options:
 # "hann": Hann window
 # ('tukey', 0.5): Tukey window with taper parameter 0.5
-# ("gaussian", 2048)
+# ("gaussian", 10)
 FREQUENCIES = F_MIN * 2**(np.arange(N_BINS) / BINS_PER_OCTAVE)
 EPS = np.finfo(np.float32).eps
-NOISE_THRESHOLD = -80  # in dB
+NOISE_THRESHOLD = -100  # in dB
 
 # Path parameters
 CWD = Path(__file__).parent.absolute()
