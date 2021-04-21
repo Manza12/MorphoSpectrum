@@ -23,7 +23,7 @@ plot_cqt(spectrogram, time_vector)
 
 # Leakage
 structural_element_leakage = np.array([[-5.8], [0], [-6]])
-origin_leakage = [0, 0]
+origin_leakage = (0, 0)
 
 erosion_leakage = erode(spectrogram, structural_element_leakage, origin_leakage)
 plot_cqt(erosion_leakage, time_vector, fig_title="Erosion of the leakage")
@@ -33,7 +33,7 @@ partials_power_db = to_db(samples_set.partials_distribution.partial_power)
 partials_height = np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
 
 strel_harmonic = np.zeros((partials_height.max() + 1, 1)) - 1000
-origin_harmonic = [- strel_harmonic.shape[0] // 2 + 1, 0]
+origin_harmonic = (- strel_harmonic.shape[0] // 2 + 1, 0)
 for i in range(partials_power_db.size):
     strel_harmonic[partials_height[i], 0] = partials_power_db[i]
 
