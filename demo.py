@@ -4,44 +4,44 @@ from plots import plot_cqt
 from samples import get_samples_set
 from time_frequency import cqt
 import sounddevice as sd
-from mathematical_morphology import erode, dilate, closing, opening
 from parameters import *
 from utils import to_db, db_to_velocity
 from librosa import hz_to_midi
 from tqdm import tqdm
+from nnMorpho.operations import erosion, dilation, opening, closing
 
 samples_set = get_samples_set('basic')
 
 piece = midi2piece('prelude_em')
 
 signal = samples_set.synthesize(piece)
-spectrogram, time_vector = cqt(signal)
+spectrogram, time_vector = cqt(signal, numpy=False)
 
-plot_cqt(spectrogram, time_vector)
+plot_cqt(spectrogram, time_vector, numpy=False)
 
 # sd.play(signal, FS)
 
 # Leakage
-structural_element_leakage = np.array([[-5.8], [0], [-6]])
-origin_leakage = (0, 0)
+structural_element_leakage = torch.tensor([[-5.8], [0], [-6]], device=DEVICE)
+origin_leakage = (1, 0)
 
-erosion_leakage = erode(spectrogram, structural_element_leakage, origin_leakage)
-plot_cqt(erosion_leakage, time_vector, fig_title="Erosion of the leakage")
+erosion_leakage = erosion(spectrogram, structural_element_leakage, origin_leakage, border_value='euclidean')
+plot_cqt(erosion_leakage, time_vector, fig_title="Erosion of the leakage", numpy=False)
 
 # Harmonic
 partials_power_db = to_db(samples_set.partials_distribution.partial_power)
 partials_height = np.round(np.log2(np.arange(N_PARTIALS) + 1) * BINS_PER_OCTAVE).astype(int)
 
-strel_harmonic = np.zeros((partials_height.max() + 1, 1)) - 1000
-origin_harmonic = (- strel_harmonic.shape[0] // 2 + 1, 0)
+strel_harmonic = torch.zeros((partials_height.max() + 1, 1), device=DEVICE) - 1000
+origin_harmonic = (0, 0)
 for i in range(partials_power_db.size):
     strel_harmonic[partials_height[i], 0] = partials_power_db[i]
 
 # structural_element_harmonic = np.expand_dims(partials_power_db, 1)
 # origin_harmonic = [- structural_element_harmonic.size // 2 + 1, 0]
 
-erosion_harmonic = erode(erosion_leakage, strel_harmonic, origin_harmonic)
-plot_cqt(erosion_harmonic, time_vector, fig_title="Erosion of the harmonics", c_map='Greys')
+erosion_harmonic = erosion(erosion_leakage, strel_harmonic, origin=origin_harmonic, border_value='euclidean')
+plot_cqt(erosion_harmonic, time_vector, fig_title="Erosion of the harmonics", c_map='Greys', numpy=False)
 
 # # Threshold
 # threshold = -100
@@ -49,37 +49,36 @@ plot_cqt(erosion_harmonic, time_vector, fig_title="Erosion of the harmonics", c_
 # plot_cqt(erosion_harmonic, time_vector, fig_title="Thresholding to " + str(threshold) + " dB", c_map='Greys')
 
 # Closing amplitude modulations
-strel_closing = np.zeros((1, 7))
+strel_closing = torch.zeros((1, 7), device=DEVICE)
 
-closing_modulation = closing(erosion_harmonic, strel_closing)
-plot_cqt(closing_modulation, time_vector, fig_title="Closing amplitude modulations", c_map='Greys')
+closing_modulation = closing(erosion_harmonic, strel_closing, origin=(0, 3), border_value='euclidean')
+plot_cqt(closing_modulation, time_vector, fig_title="Closing amplitude modulations", c_map='Greys', numpy=False)
 
 # Opening to detect of notes
-strel_opening = np.zeros((1, 20))
+strel_opening = torch.zeros((1, 21), device=DEVICE)
 
-opening_detection = opening(closing_modulation, strel_opening)
-plot_cqt(opening_detection, time_vector, fig_title="Detection of onsets/offsets", c_map='Greys')
+opening_detection = opening(closing_modulation, strel_opening, origin=(0, 10), border_value='euclidean')
+plot_cqt(opening_detection, time_vector, fig_title="Detection of onsets/offsets", c_map='Greys', numpy=False)
 
 # Threshold detection
 threshold_detection = -30
 opening_threshold = opening_detection
 opening_threshold[opening_threshold < threshold_detection] = -1000
-plot_cqt(opening_threshold, time_vector, fig_title="Threshold detection", c_map='Greys')
+plot_cqt(opening_threshold, time_vector, fig_title="Threshold detection", c_map='Greys', numpy=False)
 
 # Dilation to piano roll
-strel_piano_roll = np.zeros((3, 1))
-origin_piano_roll = [0, 0]
+strel_piano_roll = torch.zeros((3, 1), device=DEVICE)
+origin_piano_roll = (1, 0)
 
-piano_roll = dilate(opening_threshold, strel_piano_roll, origin=origin_piano_roll)
-plot_cqt(piano_roll, time_vector, fig_title="Piano roll", c_map='Greys')
+piano_roll = dilation(opening_threshold, strel_piano_roll, origin=origin_piano_roll, border_value='euclidean')
+plot_cqt(piano_roll, time_vector, fig_title="Piano roll", c_map='Greys', numpy=False, v_min=threshold_detection * 1.01, v_max=threshold_detection)
 
 # Binary piano roll
-plot_cqt(piano_roll, time_vector, fig_title="Binary piano roll", v_min=threshold_detection - EPS,
-         v_max=threshold_detection, c_map='Greys')
+plot_cqt(piano_roll, time_vector, fig_title="Binary piano roll", c_map='Greys', numpy=False)
 
 # Note detection
 # First, close the onsets to have the initial amplitude well set
-strel_onsets = np.zeros((1, 3))
+strel_onsets = torch.zeros((1, 3), device=DEVICE)
 close_onsets = closing(opening_threshold, strel_onsets)
 
 # TODO: this shall not be needed
@@ -87,7 +86,7 @@ close_onsets = closing(opening_threshold, strel_onsets)
 close_onsets[close_onsets == 0] = -1000
 
 # Plot
-plot_cqt(close_onsets, time_vector, fig_title="Close onset amplitude", c_map='Greys')
+plot_cqt(close_onsets, time_vector, fig_title="Close onset amplitude", c_map='Greys', numpy=False)
 
 # Initialisation
 frequency = None
